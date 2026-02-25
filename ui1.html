@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prototipo UI1</title>
+  </head>
+  <body>
+    <main class="page">
+      <section class="gameboy-shell">
+        <h1 class="shell-title">UI 1</h1>
+        <div class="screen-wrap">
+          <canvas id="game" width="160" height="144" aria-label="Tela do jogo"></canvas>
+        </div>
+        <div class="menu-wrap">
+          <canvas id="menu" width="160" height="80" aria-label="Menu do jogo"></canvas>
+        </div>
+        <section id="controls" class="controls" aria-label="Controles touch">
+          <div class="dpad">
+            <button class="ctrl-btn" data-input="up" aria-label="Cima">▲</button>
+            <button class="ctrl-btn" data-input="down" aria-label="Baixo">▼</button>
+            <button class="ctrl-btn" data-input="left" aria-label="Esquerda">◀</button>
+            <button class="ctrl-btn" data-input="right" aria-label="Direita">▶</button>
+          </div>
+          <div class="actions">
+            <button class="ctrl-btn" data-input="a" aria-label="A">A</button>
+            <button class="ctrl-btn" data-input="b" aria-label="B">B</button>
+          </div>
+        </section>
+        <p class="hint">Setas: UI | WASD: mover player | Z/Enter: A | X/Esc: B</p>
+      </section>
+    </main>
+    <script type="module" src="/src/bootstrap/ui1.js"></script>
+  </body>
+</html>
