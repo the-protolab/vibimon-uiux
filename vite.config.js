@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 const ROOT_DIR = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
+  base: '/vibimon-uiux/',
   build: {
     rollupOptions: {
       input: {
