@@ -42,6 +42,14 @@ Cada rota inicia estado limpo (refresh/reset por interface).
 - Clique na area do mundo para mover por direcao.
 - Tabs `MAP/BAG/MON` clicaveis na propria tela.
 
+## SELECT Menu (Shared Component)
+
+- UI1 e UI2 usam o mesmo componente `SELECT` montado via JS.
+- O `SELECT` abre um modal fullscreen para navegacao rapida.
+- Fechamento: botao `X`, clique no fundo ou tecla `ESC`.
+- Fonte unica dos links: `src/ui/shared/select-links.js`.
+- Para adicionar/remover itens do popup, edite somente `SELECT_LINKS` nesse arquivo.
+
 ## Validacao
 
 ```bash

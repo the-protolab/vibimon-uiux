@@ -186,6 +186,125 @@ body {
   );
 }
 
+.shell-select-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.shell-select-wrap {
+  position: relative;
+}
+
+.shell-select-btn {
+  width: calc(var(--action-btn-size) * 1.45);
+  height: calc(var(--action-btn-size) * 0.4);
+  border-radius: 999px;
+  font-size: calc(var(--action-btn-size) * 0.26);
+  letter-spacing: 1px;
+  transform: rotate(-14deg);
+}
+
+.shell-select-btn:active {
+  transform: rotate(-14deg) translateY(1px);
+}
+
+.shell-select-overlay[hidden] {
+  display: none;
+}
+
+.shell-select-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  padding: 16px;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 72%);
+}
+
+.shell-select-dialog {
+  width: min(560px, 92vw);
+  max-height: 82vh;
+  overflow: auto;
+  border: 2px solid #575757;
+  border-radius: 16px;
+  padding: 12px;
+  background: linear-gradient(180deg, #dedede, #a9a9a9);
+  box-shadow: 0 14px 28px rgb(0 0 0 / 40%);
+}
+
+.shell-select-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgb(56 56 56 / 35%);
+}
+
+.shell-select-title {
+  margin: 0;
+  color: #2f2f2f;
+  font-size: 18px;
+  letter-spacing: 0.6px;
+}
+
+.shell-select-close {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #5a5a5a;
+  border-radius: 10px;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--panel), var(--panel-dark));
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shell-select-close:active {
+  transform: translateY(1px);
+  filter: brightness(0.92);
+}
+
+.shell-select-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shell-select-link {
+  display: block;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 2px solid #585858;
+  border-radius: 10px;
+  color: var(--ink);
+  background: rgb(255 255 255 / 72%);
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-select-link:hover,
+.shell-select-link:focus-visible {
+  background: rgb(255 255 255 / 92%);
+  outline: none;
+}
+
+.shell-select-link.is-active {
+  background: #4f4f4f;
+  border-color: #3f3f3f;
+  color: #f2f2f2;
+}
+
 .hint {
   display: none;
 }
