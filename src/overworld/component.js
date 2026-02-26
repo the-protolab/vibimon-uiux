@@ -12,12 +12,179 @@ const DEFAULT_BASE_BLOCKED_TILES = [
   '5,8'
 ];
 
+const DEFAULT_SPAWN_LEGEND = {
+  empty: 0,
+  item: 1,
+  monster: 2
+};
+
+const DEFAULT_MONSTER_DEFAULTS = {
+  id: 'wild-01',
+  name: 'WILD-01',
+  level: 5,
+  mapIconSpriteId: 'monIcon',
+  detailSpriteId: 'fightMonster1'
+};
+
+const DEFAULT_MON_SLOTS = 4;
+
 function toTileKey(x, y) {
   return `${x},${y}`;
 }
 
 function toTileSet(tiles) {
   return new Set(tiles);
+}
+
+function createEmptyEntityGrid(cols, rows) {
+  return Array.from({ length: rows }, () => Array(cols).fill(0));
+}
+
+function normalizeSpawnLegend(spawnLegend = {}) {
+  const parseCode = (value, fallback) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) ? fallback : parsed;
+  };
+
+  return {
+    empty: parseCode(spawnLegend.empty, DEFAULT_SPAWN_LEGEND.empty),
+    item: parseCode(spawnLegend.item, DEFAULT_SPAWN_LEGEND.item),
+    monster: parseCode(spawnLegend.monster, DEFAULT_SPAWN_LEGEND.monster)
+  };
+}
+
+function normalizeMonsterDefaults(monsterDefaults = {}) {
+  const parsedLevel = Number.parseInt(monsterDefaults.level, 10);
+
+  return {
+    id: String(monsterDefaults.id || DEFAULT_MONSTER_DEFAULTS.id),
+    name: String(monsterDefaults.name || DEFAULT_MONSTER_DEFAULTS.name),
+    level: Number.isNaN(parsedLevel) ? DEFAULT_MONSTER_DEFAULTS.level : parsedLevel,
+    mapIconSpriteId: String(monsterDefaults.mapIconSpriteId || DEFAULT_MONSTER_DEFAULTS.mapIconSpriteId),
+    detailSpriteId: String(monsterDefaults.detailSpriteId || DEFAULT_MONSTER_DEFAULTS.detailSpriteId)
+  };
+}
+
+function normalizeEntityGrid(entityGrid, cols, rows, fallbackGrid) {
+  if (entityGrid == null) {
+    return fallbackGrid;
+  }
+
+  if (!Array.isArray(entityGrid) || entityGrid.length !== rows) {
+    return createEmptyEntityGrid(cols, rows);
+  }
+
+  const normalized = [];
+  for (let row = 0; row < rows; row += 1) {
+    const rawRow = entityGrid[row];
+    if (!Array.isArray(rawRow) || rawRow.length !== cols) {
+      return createEmptyEntityGrid(cols, rows);
+    }
+
+    const nextRow = [];
+    for (let col = 0; col < cols; col += 1) {
+      const parsed = Number.parseInt(rawRow[col], 10);
+      nextRow.push(Number.isNaN(parsed) ? DEFAULT_SPAWN_LEGEND.empty : parsed);
+    }
+    normalized.push(nextRow);
+  }
+
+  return normalized;
+}
+
+function buildDefaultEntityGrid(cols, rows, boat) {
+  const grid = createEmptyEntityGrid(cols, rows);
+  const tileY = boat.disembark.y;
+  const candidates = [
+    boat.disembark.x - 2,
+    boat.disembark.x + 2,
+    boat.disembark.x - 1,
+    boat.disembark.x + 1,
+    boat.disembark.x
+  ];
+
+  for (const tileX of candidates) {
+    if (tileX >= 0 && tileY >= 0 && tileX < cols && tileY < rows) {
+      grid[tileY][tileX] = DEFAULT_SPAWN_LEGEND.monster;
+      break;
+    }
+  }
+
+  return grid;
+}
+
+function buildMonsterProfile(monsterDefaults, index) {
+  const suffix = String(index).padStart(2, '0');
+  return {
+    id: `${monsterDefaults.id}-${suffix}`,
+    name: monsterDefaults.name,
+    level: monsterDefaults.level,
+    mapIconSpriteId: monsterDefaults.mapIconSpriteId,
+    detailSpriteId: monsterDefaults.detailSpriteId
+  };
+}
+
+function buildGridEntities(entityGrid, normalizedConfig) {
+  const entities = {};
+  const interactions = {};
+  let monsterCount = 0;
+  let itemCount = 0;
+
+  for (let row = 0; row < entityGrid.length; row += 1) {
+    for (let col = 0; col < entityGrid[row].length; col += 1) {
+      const code = entityGrid[row][col];
+
+      if (code === normalizedConfig.spawnLegend.monster) {
+        monsterCount += 1;
+        const entityId = `monster_${monsterCount}`;
+        entities[entityId] = {
+          id: entityId,
+          kind: 'monster',
+          x: col,
+          y: row,
+          monster: buildMonsterProfile(normalizedConfig.monsterDefaults, monsterCount)
+        };
+        interactions[entityId] = {
+          range: 'touch',
+          actions: ['capture'],
+          prompts: {
+            capture: 'A CAPTURE'
+          },
+          indicators: {
+            capture: {
+              spriteId: 'pressA16b',
+              anchor: 'entity',
+              offsetX: 0,
+              offsetY: -1
+            }
+          }
+        };
+        continue;
+      }
+
+      if (code === normalizedConfig.spawnLegend.item) {
+        itemCount += 1;
+        const entityId = `item_${itemCount}`;
+        entities[entityId] = {
+          id: entityId,
+          kind: 'item',
+          x: col,
+          y: row,
+          reserved: true
+        };
+      }
+    }
+  }
+
+  return {
+    entities,
+    interactions
+  };
+}
+
+function normalizeMonSlots(mons) {
+  const slots = Array.from({ length: DEFAULT_MON_SLOTS }, (_, index) => mons?.[index] || null);
+  return slots;
 }
 
 function normalizeConfig(config = {}) {
@@ -81,6 +248,9 @@ function normalizeConfig(config = {}) {
     viewportRows: config.viewportRows ?? baseBlockRows,
     spawnBlock,
     baseBlockedTiles: config.baseBlockedTiles || DEFAULT_BASE_BLOCKED_TILES,
+    spawnLegend: normalizeSpawnLegend(config.spawnLegend),
+    monsterDefaults: normalizeMonsterDefaults(config.monsterDefaults),
+    entityGrid: config.entityGrid || null,
     seaZones,
     cutscene: {
       stepIntervalTicks: cutsceneConfig.stepIntervalTicks ?? 2,
@@ -352,9 +522,66 @@ function resolveDisembarkInteraction(state, candidate) {
   };
 }
 
+function removeEntityAndInteraction(overworld, entityId) {
+  if (!entityId) {
+    return overworld;
+  }
+
+  const { [entityId]: removedEntity, ...remainingEntities } = overworld.entities || {};
+  const { [entityId]: removedInteraction, ...remainingInteractions } = overworld.interactions || {};
+
+  return {
+    ...overworld,
+    entities: removedEntity ? remainingEntities : overworld.entities,
+    interactions: removedInteraction ? remainingInteractions : overworld.interactions
+  };
+}
+
+function resolveCaptureInteraction(state, candidate) {
+  if (state.overworld.playerMountedEntityId) {
+    return {
+      ...state,
+      message: 'ON BOAT'
+    };
+  }
+
+  const { entityId, entity } = candidate;
+  const monster = entity?.monster;
+  if (!monster) {
+    return {
+      ...state,
+      message: 'NO MON DATA'
+    };
+  }
+
+  const nextMons = normalizeMonSlots(state.menu.mons);
+  const firstEmptyIndex = nextMons.findIndex((slot) => !slot);
+  if (firstEmptyIndex === -1) {
+    return {
+      ...state,
+      message: 'MON PARTY FULL'
+    };
+  }
+
+  nextMons[firstEmptyIndex] = {
+    ...monster
+  };
+
+  return {
+    ...state,
+    menu: {
+      ...state.menu,
+      mons: nextMons
+    },
+    overworld: removeEntityAndInteraction(state.overworld, entityId),
+    message: `CAPTURED ${monster.name}`
+  };
+}
+
 const INTERACTION_HANDLERS = {
   board: resolveBoardInteraction,
-  disembark: resolveDisembarkInteraction
+  disembark: resolveDisembarkInteraction,
+  capture: resolveCaptureInteraction
 };
 
 export function computeCamera(world, anchor, viewport) {
@@ -452,11 +679,34 @@ export function syncOverworldDerivedState(state, options = {}) {
 
 function buildInitialOverworldStateInternal(normalizedConfig) {
   const spawnOrigin = getSpawnOrigin(normalizedConfig);
+  const worldCols = normalizedConfig.baseBlockCols * normalizedConfig.blockGridCols;
+  const worldRows = normalizedConfig.baseBlockRows * normalizedConfig.blockGridRows;
   const replicatedBlockedTiles = buildReplicatedTiles(normalizedConfig.baseBlockedTiles, normalizedConfig);
   const seaTiles = buildSeaTiles(normalizedConfig, spawnOrigin);
   const blockedTileSet = toTileSet([...replicatedBlockedTiles, ...seaTiles]);
   const seaTileSet = toTileSet(seaTiles);
   const boat = createBoatEntity(normalizedConfig, spawnOrigin);
+  const defaultEntityGrid = buildDefaultEntityGrid(worldCols, worldRows, boat);
+  const entityGrid = normalizeEntityGrid(normalizedConfig.entityGrid, worldCols, worldRows, defaultEntityGrid);
+  const gridEntities = buildGridEntities(entityGrid, normalizedConfig);
+  const boatInteractions = {
+    [boat.id]: {
+      range: 'touch',
+      actions: ['board', 'disembark'],
+      prompts: {
+        board: 'A BOARD',
+        disembark: 'A DISEMBARK'
+      },
+      indicators: {
+        disembark: {
+          spriteId: 'pressA16b',
+          anchor: 'entity',
+          offsetX: 0,
+          offsetY: -1
+        }
+      }
+    }
+  };
 
   return {
     config: normalizedConfig,
@@ -469,26 +719,14 @@ function buildInitialOverworldStateInternal(normalizedConfig) {
     blockedTileSet,
     seaTiles,
     seaTileSet,
+    entityGrid,
     entities: {
-      [boat.id]: boat
+      [boat.id]: boat,
+      ...gridEntities.entities
     },
     interactions: {
-      [boat.id]: {
-        range: 'touch',
-        actions: ['board', 'disembark'],
-        prompts: {
-          board: 'A BOARD',
-          disembark: 'A DISEMBARK'
-        },
-        indicators: {
-          disembark: {
-            spriteId: 'pressA16b',
-            anchor: 'entity',
-            offsetX: 0,
-            offsetY: -1
-          }
-        }
-      }
+      ...boatInteractions,
+      ...gridEntities.interactions
     },
     playerMountedEntityId: boat.id,
     cutscene: {

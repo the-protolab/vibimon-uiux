@@ -60,4 +60,45 @@ describe('world movement', () => {
     expect(computeCamera(world, { x: 29, y: 26 }, viewport)).toEqual({ x: 20, y: 18 });
     expect(computeCamera(world, { x: 15, y: 13 }, viewport)).toEqual({ x: 10, y: 9 });
   });
+
+  it('spawns a default monster entity with contextual capture interaction', () => {
+    const state = createInitialState('ui1');
+    const monster = Object.values(state.overworld.entities).find((entity) => entity.kind === 'monster');
+
+    expect(monster).toBeTruthy();
+    expect(state.overworld.interactions[monster.id]).toMatchObject({
+      actions: ['capture']
+    });
+  });
+
+  it('uses an empty fallback grid when provided entity grid shape is invalid', () => {
+    const state = createInitialState('ui1', {
+      overworldConfig: {
+        entityGrid: [[2]]
+      }
+    });
+
+    const monster = Object.values(state.overworld.entities).find((entity) => entity.kind === 'monster');
+    expect(monster).toBeFalsy();
+  });
+
+  it('builds item/monster entities from a valid global 30x27 entity grid', () => {
+    const entityGrid = Array.from({ length: 27 }, () => Array(30).fill(0));
+    entityGrid[5][7] = 1;
+    entityGrid[6][8] = 2;
+
+    const state = createInitialState('ui1', {
+      overworldConfig: {
+        entityGrid
+      }
+    });
+
+    const item = Object.values(state.overworld.entities).find((entity) => entity.kind === 'item');
+    const monster = Object.values(state.overworld.entities).find((entity) => entity.kind === 'monster');
+
+    expect(item).toMatchObject({ x: 7, y: 5, reserved: true });
+    expect(monster).toMatchObject({ x: 8, y: 6 });
+    expect(state.overworld.interactions[item.id]).toBeUndefined();
+    expect(state.overworld.interactions[monster.id]).toMatchObject({ actions: ['capture'] });
+  });
 });

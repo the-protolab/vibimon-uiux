@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildSpriteSourceIndex,
   hydrateSpritePack,
+  loadPlayerSprites,
   pickPlayerId,
   resolvePlayerIdFromSearch
 } from '../src/render/sprites.js';
@@ -62,5 +63,31 @@ describe('player sprite pipeline', () => {
     expect(sprites.left.every((frame) => frame.flipX)).toBe(true);
     expect(sprites.up.map((frame) => frame.image)).toEqual(['/default/up0.png']);
     expect(sprites.down.map((frame) => frame.image)).toEqual(['/classic/down0.png']);
+  });
+
+  it('loads monster sprites and interaction icon keys in the runtime sprite bundle', async () => {
+    const OriginalImage = globalThis.Image;
+
+    class MockImage {
+      set src(value) {
+        this._src = value;
+        Promise.resolve().then(() => {
+          if (typeof this.onload === 'function') {
+            this.onload();
+          }
+        });
+      }
+    }
+
+    globalThis.Image = MockImage;
+
+    try {
+      const sprites = await loadPlayerSprites();
+      expect(sprites).toHaveProperty('monIcon');
+      expect(sprites).toHaveProperty('fightMonster1');
+      expect(sprites.interactionIcons).toHaveProperty('pressA16b');
+    } finally {
+      globalThis.Image = OriginalImage;
+    }
   });
 });

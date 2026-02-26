@@ -39,6 +39,7 @@ const SLOT_SIZE = 12;
 const SLOT_GAP = 4;
 const SLOT_STEP = SLOT_SIZE + SLOT_GAP;
 const INACTIVE_TAB_ALPHA = 0.8;
+const PREVIEW_PADDING = 4;
 
 export const UI1_DYNAMIC_PANEL_VIEWS = {
   MAP: 'map',
@@ -52,11 +53,41 @@ export const UI1_HITBOXES = {
   tabMon: { x: TAB_X, y: MON_TAB_Y, width: TAB_WIDTH, height: TAB_HEIGHT }
 };
 
-function drawSlotRow(ctx, x, y, selectedIndex) {
+function getMonLevel(mon) {
+  if (!mon || typeof mon === 'string') {
+    return null;
+  }
+
+  if (typeof mon.level === 'number') {
+    return mon.level;
+  }
+
+  const parsed = Number.parseInt(mon.level, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export function getSelectedMonSlot(state) {
+  return state.menu.mons?.[state.menu.monIndex] || null;
+}
+
+function drawSlotRow(ctx, x, y, selectedIndex, options = {}) {
+  const slots = options.slots || [];
+  const kind = options.kind || 'generic';
+  const sprites = options.sprites || null;
+
   for (let i = 0; i < 4; i += 1) {
     const slotX = x + i * SLOT_STEP;
     ctx.fillStyle = PALETTE.mid;
     ctx.fillRect(slotX, y, SLOT_SIZE, SLOT_SIZE);
+
+    if (kind === 'mon' && slots[i]) {
+      if (sprites?.monIcon) {
+        ctx.drawImage(sprites.monIcon, slotX, y, SLOT_SIZE, SLOT_SIZE);
+      } else {
+        ctx.fillStyle = PALETTE.dark;
+        ctx.fillRect(slotX + 3, y + 3, SLOT_SIZE - 6, SLOT_SIZE - 6);
+      }
+    }
 
     if (i === selectedIndex) {
       ctx.strokeStyle = PALETTE.black;
@@ -64,6 +95,31 @@ function drawSlotRow(ctx, x, y, selectedIndex) {
       ctx.strokeRect(slotX + 0.5, y + 0.5, SLOT_SIZE - 1, SLOT_SIZE - 1);
     }
   }
+}
+
+function getMiniMapTileRect(x, y, width, height, world, tileX, tileY) {
+  const x0 = x + Math.floor((tileX * width) / world.cols);
+  const x1 = x + Math.floor(((tileX + 1) * width) / world.cols);
+  const y0 = y + Math.floor((tileY * height) / world.rows);
+  const y1 = y + Math.floor(((tileY + 1) * height) / world.rows);
+
+  return {
+    x: x0,
+    y: y0,
+    width: Math.max(1, x1 - x0),
+    height: Math.max(1, y1 - y0)
+  };
+}
+
+function drawEnhancedMapMarkers(ctx, panelX, panelY, panelWidth, panelHeight, state) {
+  const { world, player } = state;
+  const playerRect = getMiniMapTileRect(panelX, panelY, panelWidth, panelHeight, world, player.x, player.y);
+  const markerSize = Math.max(2, Math.min(4, Math.max(playerRect.width, playerRect.height)));
+  const markerX = playerRect.x + Math.floor((playerRect.width - markerSize) / 2);
+  const markerY = playerRect.y + Math.floor((playerRect.height - markerSize) / 2);
+
+  ctx.fillStyle = PALETTE.black;
+  ctx.fillRect(markerX, markerY, markerSize, markerSize);
 }
 
 function drawPreviewPlaceholder(ctx, label) {
@@ -81,25 +137,57 @@ function drawPreviewPlaceholder(ctx, label) {
 }
 
 function renderMapPanel(ctx, state) {
+  const mapX = MAP_PANEL.x + MAP_INSET;
+  const mapY = MAP_PANEL.y + MAP_INSET;
+  const mapWidth = MAP_PANEL.width - MAP_INSET * 2;
+  const mapHeight = MAP_PANEL.height - MAP_INSET * 2;
+
   drawMiniMap(
     ctx,
-    MAP_PANEL.x + MAP_INSET,
-    MAP_PANEL.y + MAP_INSET,
-    MAP_PANEL.width - MAP_INSET * 2,
-    MAP_PANEL.height - MAP_INSET * 2,
+    mapX,
+    mapY,
+    mapWidth,
+    mapHeight,
     state.world,
     state.player,
     state.menu.mapCursor,
     state.overworld
   );
+  drawEnhancedMapMarkers(ctx, mapX, mapY, mapWidth, mapHeight, state);
 }
 
 function renderBagPreviewPanel(ctx) {
   drawPreviewPlaceholder(ctx, 'BAG INFO');
 }
 
-function renderMonPreviewPanel(ctx) {
-  drawPreviewPlaceholder(ctx, 'MON INFO');
+function renderMonPreviewPanel(ctx, state, sprites) {
+  const mon = getSelectedMonSlot(state);
+  if (!mon) {
+    drawPreviewPlaceholder(ctx, 'MON INFO');
+    return;
+  }
+
+  const level = getMonLevel(mon);
+  drawText(
+    ctx,
+    level === null ? 'LV ?' : `LV ${level}`,
+    MAP_PANEL.x + PREVIEW_PADDING,
+    MAP_PANEL.y + PREVIEW_PADDING,
+    PALETTE.dark
+  );
+
+  const spriteSize = 40;
+  const spriteX = MAP_PANEL.x + Math.floor((MAP_PANEL.width - spriteSize) / 2);
+  const spriteY = MAP_PANEL.y + MAP_PANEL.height - spriteSize - 4;
+  if (sprites?.fightMonster1) {
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(sprites.fightMonster1, spriteX, spriteY, spriteSize, spriteSize);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = PALETTE.dark;
+    ctx.fillRect(spriteX + 10, spriteY + 10, 20, 20);
+  }
 }
 
 const DYNAMIC_PANEL_RENDERERS = {
@@ -122,7 +210,7 @@ export function resolveUI1DynamicPanelView(state) {
   }
 }
 
-export function renderUI1Overlay(ctx, state) {
+export function renderUI1Overlay(ctx, state, sprites) {
   ctx.fillStyle = PALETTE.black;
   ctx.fillRect(0, 0, MENU_WIDTH, MENU_HEIGHT);
 
@@ -137,8 +225,8 @@ export function renderUI1Overlay(ctx, state) {
   ctx.lineWidth = 1;
   ctx.strokeRect(ISLAND.x + 0.5, ISLAND.y + 0.5, ISLAND.width - 1, ISLAND.height - 1);
 
-  const bagActive = state.menu.ui1Focus === 'BAG';
-  const monActive = state.menu.ui1Focus === 'MON';
+  const bagActive = state.menu.ui1Focus === MENU_TABS.BAG;
+  const monActive = state.menu.ui1Focus === MENU_TABS.MON;
   const bagHighlighted = islandActive && bagActive;
   const monHighlighted = islandActive && monActive;
   const tabAlpha = islandActive ? 1 : INACTIVE_TAB_ALPHA;
@@ -174,9 +262,13 @@ export function renderUI1Overlay(ctx, state) {
   ctx.restore();
 
   drawSlotRow(ctx, SLOT_ROW_X, BAG_ROW_Y, islandActive && bagActive ? state.menu.bagIndex : -1);
-  drawSlotRow(ctx, SLOT_ROW_X, MON_ROW_Y, islandActive && monActive ? state.menu.monIndex : -1);
+  drawSlotRow(ctx, SLOT_ROW_X, MON_ROW_Y, islandActive && monActive ? state.menu.monIndex : -1, {
+    kind: 'mon',
+    slots: state.menu.mons,
+    sprites
+  });
 
   const view = resolveUI1DynamicPanelView(state);
   const renderPanel = DYNAMIC_PANEL_RENDERERS[view] || DYNAMIC_PANEL_RENDERERS[UI1_DYNAMIC_PANEL_VIEWS.MAP];
-  renderPanel(ctx, state);
+  renderPanel(ctx, state, sprites);
 }

@@ -98,8 +98,8 @@ export function createUI1Skin() {
     mapInputToDomain(inputAction, state) {
       return inputActionToDomain(inputAction, state);
     },
-    renderOverlay(ctx, state) {
-      renderUI1Overlay(ctx, state);
+    renderOverlay(ctx, state, sprites) {
+      renderUI1Overlay(ctx, state, sprites);
     }
   };
 }

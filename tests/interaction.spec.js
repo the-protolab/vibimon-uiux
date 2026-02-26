@@ -105,6 +105,17 @@ describe('skin input mapping', () => {
     expect(domain).toEqual([{ type: DOMAIN_ACTIONS.CONFIRM }]);
   });
 
+  it('ui1 maps A to CONFIRM in map mode for contextual interactions', () => {
+    const state = createInitialState('ui1');
+    const skin = createUI1Skin();
+
+    const input = skin.mapInput({ kind: 'keyboard', code: 'KeyZ' }, state);
+    expect(input).toEqual([INPUT_ACTIONS.A]);
+
+    const domain = skin.mapInputToDomain(input[0], state);
+    expect(domain).toEqual([{ type: DOMAIN_ACTIONS.CONFIRM }]);
+  });
+
   it('ui2 touch control A maps to the same contextual CONFIRM action', () => {
     const state = createInitialState('ui2');
     const skin = createUI2Skin();

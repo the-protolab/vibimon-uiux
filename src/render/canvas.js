@@ -45,6 +45,43 @@ function drawInteractionIndicator(ctx, state, sprites, camera) {
   ctx.drawImage(icon, screenX, screenY, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
 }
 
+function drawOverworldEntities(ctx, state, sprites, camera) {
+  const entities = Object.values(state.overworld?.entities || {});
+
+  for (const entity of entities) {
+    if (!entity || !isVisibleOnCamera(camera, entity.x, entity.y)) {
+      continue;
+    }
+
+    if (entity.kind === 'boat') {
+      const boatHeight = sprites?.boat?.naturalHeight || sprites?.boat?.height || 24;
+      const boatX = tileToScreen(entity.x, camera.x);
+      const boatY = tileToScreen(entity.y, camera.y) + (entity.spriteOffsetY || 0);
+
+      if (sprites?.boat) {
+        ctx.drawImage(sprites.boat, boatX, boatY, TILE_SIZE_WORLD, boatHeight);
+      } else {
+        ctx.fillStyle = '#4a6470';
+        ctx.fillRect(boatX, boatY + 8, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
+      }
+      continue;
+    }
+
+    if (entity.kind === 'monster') {
+      const icon = sprites?.monIcon;
+      const iconX = tileToScreen(entity.x, camera.x);
+      const iconY = tileToScreen(entity.y, camera.y);
+
+      if (icon) {
+        ctx.drawImage(icon, iconX, iconY, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
+      } else {
+        ctx.fillStyle = '#3b3b3b';
+        ctx.fillRect(iconX + 2, iconY + 2, TILE_SIZE_WORLD - 4, TILE_SIZE_WORLD - 4);
+      }
+    }
+  }
+}
+
 function drawWorldLayer(ctx, state, sprites) {
   const blockedTiles = getBlockedTiles(state.overworld);
   const seaTiles = getSeaTiles(state.overworld);
@@ -84,19 +121,7 @@ function drawWorldLayer(ctx, state, sprites) {
     }
   }
 
-  const boat = state.overworld?.entities?.boat;
-  if (boat && isVisibleOnCamera(camera, boat.x, boat.y)) {
-    const boatHeight = sprites?.boat?.naturalHeight || sprites?.boat?.height || 24;
-    const boatX = tileToScreen(boat.x, camera.x);
-    const boatY = tileToScreen(boat.y, camera.y) + (boat.spriteOffsetY || 0);
-
-    if (sprites?.boat) {
-      ctx.drawImage(sprites.boat, boatX, boatY, TILE_SIZE_WORLD, boatHeight);
-    } else {
-      ctx.fillStyle = '#4a6470';
-      ctx.fillRect(boatX, boatY + 8, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
-    }
-  }
+  drawOverworldEntities(ctx, state, sprites, camera);
 
   drawInteractionIndicator(ctx, state, sprites, camera);
 
@@ -134,11 +159,11 @@ export function renderFrame(ctx, state, skin, sprites) {
   drawText(ctx, state.message, 4, LOGICAL_HEIGHT - 8, PALETTE.dark);
 }
 
-function renderMenuFrame(menuCtx, state, skin) {
+function renderMenuFrame(menuCtx, state, skin, sprites) {
   menuCtx.imageSmoothingEnabled = false;
   menuCtx.clearRect(0, 0, MENU_WIDTH, MENU_HEIGHT);
 
-  skin.renderOverlay(menuCtx, state);
+  skin.renderOverlay(menuCtx, state, sprites);
 }
 
 export function createRenderer(canvas, menuCanvas) {
@@ -163,7 +188,7 @@ export function createRenderer(canvas, menuCanvas) {
     render(state, skin, sprites) {
       renderFrame(ctx, state, skin, sprites);
       if (menuCtx) {
-        renderMenuFrame(menuCtx, state, skin);
+        renderMenuFrame(menuCtx, state, skin, sprites);
       }
     }
   };

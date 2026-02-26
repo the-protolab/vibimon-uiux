@@ -18,7 +18,7 @@ export const MENU_WIDTH = 160;
 export const MENU_HEIGHT = 80;
 
 const DEFAULT_BAG_ITEMS = ['POTION', 'ANTIDOTE', 'ROPE', 'ETHER'];
-const DEFAULT_MONS = ['MON-01', 'MON-02', 'MON-03', 'MON-04'];
+const DEFAULT_MON_SLOTS = [null, null, null, null];
 
 export function createInitialState(mode, options = {}) {
   const overworldComponent = createOverworldComponent({
@@ -54,7 +54,7 @@ export function createInitialState(mode, options = {}) {
       monIndex: 0,
       mapCursor: { x: playerStart.x, y: playerStart.y },
       bagItems: [...DEFAULT_BAG_ITEMS],
-      mons: [...DEFAULT_MONS]
+      mons: [...DEFAULT_MON_SLOTS]
     },
     overworld,
     camera: {

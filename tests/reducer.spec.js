@@ -23,6 +23,10 @@ function runUntilDocked(state, maxTicks = 120) {
   return { state: next, ticks };
 }
 
+function findFirstMonsterEntity(state) {
+  return Object.values(state.overworld.entities).find((entity) => entity.kind === 'monster') || null;
+}
+
 describe('reducer flows', () => {
   it('ui1 toggles focus with vertical select', () => {
     const initial = createInitialState('ui1');
@@ -216,5 +220,49 @@ describe('reducer flows', () => {
     };
     const next = reduceGameState(farState, { type: DOMAIN_ACTIONS.CONFIRM });
     expect(next.message).toBe('NO INTERACTION');
+  });
+
+  it('captures a nearby monster with A and fills the first empty MON slot', () => {
+    const initial = createInitialState('ui1');
+    const docked = runUntilDocked(initial).state;
+    const disembarked = reduceGameState(docked, { type: DOMAIN_ACTIONS.CONFIRM });
+    const inRange = reduceGameState(disembarked, { type: DOMAIN_ACTIONS.MOVE, direction: 'left' });
+    const captured = reduceGameState(inRange, { type: DOMAIN_ACTIONS.CONFIRM });
+
+    expect(captured.menu.mons[0]).toMatchObject({
+      name: 'WILD-01',
+      level: 5,
+      mapIconSpriteId: 'monIcon',
+      detailSpriteId: 'fightMonster1'
+    });
+    expect(captured.message).toBe('CAPTURED WILD-01');
+    expect(captured.menu.activeTab).toBe(inRange.menu.activeTab);
+    expect(captured.menu.ui1Focus).toBe(inRange.menu.ui1Focus);
+    expect(findFirstMonsterEntity(captured)).toBeNull();
+  });
+
+  it('does not capture when MON slots are full and keeps monster on map', () => {
+    const initial = createInitialState('ui1');
+    const docked = runUntilDocked(initial).state;
+    const disembarked = reduceGameState(docked, { type: DOMAIN_ACTIONS.CONFIRM });
+    const inRange = reduceGameState(disembarked, { type: DOMAIN_ACTIONS.MOVE, direction: 'left' });
+    const fullPartyState = {
+      ...inRange,
+      menu: {
+        ...inRange.menu,
+        mons: [
+          { id: 'm1', name: 'A', level: 1, mapIconSpriteId: 'monIcon', detailSpriteId: 'fightMonster1' },
+          { id: 'm2', name: 'B', level: 2, mapIconSpriteId: 'monIcon', detailSpriteId: 'fightMonster1' },
+          { id: 'm3', name: 'C', level: 3, mapIconSpriteId: 'monIcon', detailSpriteId: 'fightMonster1' },
+          { id: 'm4', name: 'D', level: 4, mapIconSpriteId: 'monIcon', detailSpriteId: 'fightMonster1' }
+        ]
+      }
+    };
+
+    const next = reduceGameState(fullPartyState, { type: DOMAIN_ACTIONS.CONFIRM });
+
+    expect(next.message).toBe('MON PARTY FULL');
+    expect(next.menu.mons).toEqual(fullPartyState.menu.mons);
+    expect(findFirstMonsterEntity(next)).not.toBeNull();
   });
 });

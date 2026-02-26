@@ -165,8 +165,8 @@ export function createUI2Skin() {
     mapInputToDomain(inputAction) {
       return inputActionToDomain(inputAction);
     },
-    renderOverlay(ctx, state) {
-      renderUI2Overlay(ctx, state);
+    renderOverlay(ctx, state, sprites) {
+      renderUI2Overlay(ctx, state, sprites);
     }
   };
 }

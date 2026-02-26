@@ -2,6 +2,30 @@ import { DOMAIN_ACTIONS, MENU_TABS } from './actions.js';
 import { advanceOverworldTick, canActorMove, resolveInteraction, syncOverworldDerivedState } from '../overworld/component.js';
 import { moveCursor } from './world.js';
 
+function formatBagLabel(item) {
+  if (!item) {
+    return 'EMPTY';
+  }
+
+  if (typeof item === 'string') {
+    return item;
+  }
+
+  return item.name || item.id || 'ITEM';
+}
+
+function formatMonLabel(mon) {
+  if (!mon) {
+    return 'EMPTY';
+  }
+
+  if (typeof mon === 'string') {
+    return mon;
+  }
+
+  return mon.name || mon.id || 'MON';
+}
+
 function cycleIndex(current, length, delta) {
   if (length <= 0) {
     return 0;
@@ -102,27 +126,27 @@ function confirmAction(state) {
     if (state.menu.ui1Focus === MENU_TABS.BAG) {
       return {
         ...state,
-        message: `BAG ${state.menu.bagItems[state.menu.bagIndex]}`
+        message: `BAG ${formatBagLabel(state.menu.bagItems[state.menu.bagIndex])}`
       };
     }
 
     return {
       ...state,
-      message: `MON ${state.menu.mons[state.menu.monIndex]}`
+      message: `MON ${formatMonLabel(state.menu.mons[state.menu.monIndex])}`
     };
   }
 
   if (state.menu.activeTab === MENU_TABS.BAG) {
     return {
       ...state,
-      message: `BAG ${state.menu.bagItems[state.menu.bagIndex]}`
+      message: `BAG ${formatBagLabel(state.menu.bagItems[state.menu.bagIndex])}`
     };
   }
 
   if (state.menu.activeTab === MENU_TABS.MON) {
     return {
       ...state,
-      message: `MON ${state.menu.mons[state.menu.monIndex]}`
+      message: `MON ${formatMonLabel(state.menu.mons[state.menu.monIndex])}`
     };
   }
 

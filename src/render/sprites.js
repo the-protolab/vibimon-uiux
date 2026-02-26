@@ -6,6 +6,8 @@ import {
 } from '../config/player-sprite-config.js';
 import BOAT_SPRITE_SRC from '../../assets/boat.png';
 import PRESS_A_INDICATOR_SRC from '../../assets/press-A-16b.png';
+import MON_ICON_SRC from '../../assets/mons/mon-icon.png';
+import FIGHT_MONSTER_1_SRC from '../../assets/mons/fight-monsters_1.png';
 
 const SPRITE_SOURCE_ENTRIES = import.meta.glob('../../assets/players/**/*.{png,webp}', {
   eager: true,
@@ -220,10 +222,26 @@ export async function loadPlayerSprites() {
     pressA16b = null;
   }
 
+  let monIcon = null;
+  try {
+    monIcon = await loadImage(MON_ICON_SRC);
+  } catch {
+    monIcon = null;
+  }
+
+  let fightMonster1 = null;
+  try {
+    fightMonster1 = await loadImage(FIGHT_MONSTER_1_SRC);
+  } catch {
+    fightMonster1 = null;
+  }
+
   return {
     ...spriteMap,
     playerId: activePlayerId,
     boat,
+    monIcon,
+    fightMonster1,
     interactionIcons: {
       pressA16b
     }
