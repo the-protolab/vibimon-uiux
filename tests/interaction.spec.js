@@ -3,6 +3,7 @@ import { DOMAIN_ACTIONS, INPUT_ACTIONS, MENU_TABS } from '../src/core/actions.js
 import { createInitialState } from '../src/core/game-state.js';
 import { createUI1Skin } from '../src/ui/skin-ui1/interaction.js';
 import { createUI2Skin } from '../src/ui/skin-ui2/interaction.js';
+import { UI2_HITBOXES } from '../src/ui/skin-ui2/layout.js';
 
 describe('skin input mapping', () => {
   it('ui1 maps keyboard arrows to world move while MAP viewport is active', () => {
@@ -105,7 +106,31 @@ describe('skin input mapping', () => {
     expect(domain).toEqual([{ type: DOMAIN_ACTIONS.MOVE, direction: 'right' }]);
   });
 
-  it('ui2 keyboard arrows navigate list while BAG tab is active', () => {
+  it('ui2 ignores keyboard arrows in BAG and MON tabs', () => {
+    const initial = createInitialState('ui2');
+    const bagState = {
+      ...initial,
+      menu: {
+        ...initial.menu,
+        activeTab: MENU_TABS.BAG
+      }
+    };
+    const monState = {
+      ...initial,
+      menu: {
+        ...initial.menu,
+        activeTab: MENU_TABS.MON
+      }
+    };
+    const skin = createUI2Skin();
+
+    expect(skin.mapInput({ kind: 'keyboard', code: 'ArrowLeft' }, bagState)).toEqual([]);
+    expect(skin.mapInput({ kind: 'keyboard', code: 'ArrowDown' }, monState)).toEqual([]);
+    expect(skin.mapInput({ kind: 'control', input: 'up' }, bagState)).toEqual([]);
+    expect(skin.mapInput({ kind: 'control', input: 'down' }, monState)).toEqual([]);
+  });
+
+  it('ui2 list navigation click hitboxes emit SELECT_ITEM via UP and DOWN', () => {
     const initial = createInitialState('ui2');
     const state = {
       ...initial,
@@ -116,11 +141,23 @@ describe('skin input mapping', () => {
     };
     const skin = createUI2Skin();
 
-    const input = skin.mapInput({ kind: 'keyboard', code: 'ArrowLeft' }, state);
-    expect(input).toEqual([INPUT_ACTIONS.LEFT]);
+    const upInput = skin.mapInput(
+      { kind: 'menu', x: UI2_HITBOXES.listNavUp.x + 1, y: UI2_HITBOXES.listNavUp.y + 1 },
+      state
+    );
+    expect(upInput).toEqual([INPUT_ACTIONS.UP]);
+    expect(skin.mapInputToDomain(upInput[0], state)).toEqual([
+      { type: DOMAIN_ACTIONS.SELECT_ITEM, direction: 'up' }
+    ]);
 
-    const domain = skin.mapInputToDomain(input[0], state);
-    expect(domain).toEqual([{ type: DOMAIN_ACTIONS.SELECT_ITEM, direction: 'left' }]);
+    const downInput = skin.mapInput(
+      { kind: 'menu', x: UI2_HITBOXES.listNavDown.x + 1, y: UI2_HITBOXES.listNavDown.y + 1 },
+      state
+    );
+    expect(downInput).toEqual([INPUT_ACTIONS.DOWN]);
+    expect(skin.mapInputToDomain(downInput[0], state)).toEqual([
+      { type: DOMAIN_ACTIONS.SELECT_ITEM, direction: 'down' }
+    ]);
   });
 
   it('ui2 ignores WASD movement keys', () => {
@@ -149,6 +186,39 @@ describe('skin input mapping', () => {
 
     const domain = skin.mapInputToDomain(input[0], state);
     expect(domain).toEqual([{ type: DOMAIN_ACTIONS.CONFIRM }]);
+  });
+
+  it('ui2 A from BAG/MON jumps to MAP and confirms contextual interaction', () => {
+    const base = createInitialState('ui2');
+    const bagState = {
+      ...base,
+      menu: {
+        ...base.menu,
+        activeTab: MENU_TABS.BAG
+      }
+    };
+    const skin = createUI2Skin();
+
+    const bagInput = skin.mapInput({ kind: 'keyboard', code: 'KeyZ' }, bagState);
+    expect(bagInput).toEqual([INPUT_ACTIONS.A]);
+    expect(skin.mapInputToDomain(bagInput[0], bagState)).toEqual([
+      { type: DOMAIN_ACTIONS.OPEN_TAB, tab: MENU_TABS.MAP },
+      { type: DOMAIN_ACTIONS.CONFIRM }
+    ]);
+
+    const monState = {
+      ...base,
+      menu: {
+        ...base.menu,
+        activeTab: MENU_TABS.MON
+      }
+    };
+    const monInput = skin.mapInput({ kind: 'control', input: 'a' }, monState);
+    expect(monInput).toEqual([INPUT_ACTIONS.A]);
+    expect(skin.mapInputToDomain(monInput[0], monState)).toEqual([
+      { type: DOMAIN_ACTIONS.OPEN_TAB, tab: MENU_TABS.MAP },
+      { type: DOMAIN_ACTIONS.CONFIRM }
+    ]);
   });
 
   it('ui2 maps B to no-op because tabs drive navigation', () => {

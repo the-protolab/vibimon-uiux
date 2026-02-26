@@ -17,7 +17,7 @@ export const WORLD_ROWS = VIEWPORT_ROWS * WORLD_BLOCK_ROWS;
 export const MENU_WIDTH = 160;
 export const MENU_HEIGHT = 80;
 
-const DEFAULT_BAG_ITEMS = ['POTION', 'ANTIDOTE', 'ROPE', 'ETHER'];
+const DEFAULT_BAG_ITEMS = [null, null, null, null];
 const DEFAULT_MON_SLOTS = [null, null, null, null];
 
 export function createInitialState(mode, options = {}) {

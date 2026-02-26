@@ -126,14 +126,32 @@ describe('reducer flows', () => {
     expect(next.menu.mapCursor.x).toBe(initial.menu.mapCursor.x + 1);
   });
 
-  it('ui2 switches tabs with OPEN_TAB', () => {
-    const initial = createInitialState('ui2');
-    const next = reduceGameState(initial, {
+  it('ui2 switches tabs with OPEN_TAB and starts selection from first slot', () => {
+    const base = createInitialState('ui2');
+    const initial = {
+      ...base,
+      menu: {
+        ...base.menu,
+        bagIndex: 3,
+        monIndex: 2
+      }
+    };
+    const monTab = reduceGameState(initial, {
       type: DOMAIN_ACTIONS.OPEN_TAB,
       tab: MENU_TABS.MON
     });
 
-    expect(next.menu.activeTab).toBe(MENU_TABS.MON);
+    expect(monTab.menu.activeTab).toBe(MENU_TABS.MON);
+    expect(monTab.menu.monIndex).toBe(0);
+    expect(monTab.menu.bagIndex).toBe(3);
+
+    const bagTab = reduceGameState(monTab, {
+      type: DOMAIN_ACTIONS.OPEN_TAB,
+      tab: MENU_TABS.BAG
+    });
+    expect(bagTab.menu.activeTab).toBe(MENU_TABS.BAG);
+    expect(bagTab.menu.bagIndex).toBe(0);
+    expect(bagTab.menu.monIndex).toBe(0);
   });
 
   it('starts with cutscene lock and boat approach active', () => {

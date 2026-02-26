@@ -51,11 +51,27 @@ function createState(activeTab) {
   };
 }
 
+function createEmptyState(activeTab) {
+  const state = createState(activeTab);
+  return {
+    ...state,
+    menu: {
+      ...state.menu,
+      bagItems: [null, null, null, null],
+      bagIndex: 0,
+      mons: [null, null, null, null],
+      monIndex: 0
+    }
+  };
+}
+
 function createContext() {
   return {
     fillStyle: '',
     fillRect: vi.fn(),
-    drawImage: vi.fn()
+    drawImage: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn()
   };
 }
 
@@ -92,12 +108,31 @@ describe('ui2 layout refresh', () => {
 
     renderUI2Overlay(ctx, state, null);
 
-    const bagLabels = ['POTION', 'ANTIDOTE', 'ROPE'];
-    const bagCalls = primitiveMocks.drawText.mock.calls.filter((entry) => bagLabels.includes(entry[1]));
+    const bagCalls = primitiveMocks.drawText.mock.calls.filter((entry) => [22, 34, 46].includes(entry[3]));
 
     expect(bagCalls).toHaveLength(3);
     const xPositions = bagCalls.map((entry) => entry[2]);
     expect(new Set(xPositions).size).toBe(1);
+  });
+
+  it('renders BAG with a light content background and item details', () => {
+    const state = createState(MENU_TABS.BAG);
+    const ctx = createContext();
+
+    renderUI2Overlay(ctx, state, null);
+
+    const hasLightContentPanel = primitiveMocks.drawBox.mock.calls.some(
+      (entry) =>
+        entry[1] === 0 &&
+        entry[2] === 0 &&
+        entry[3] === 160 &&
+        entry[4] === 64 &&
+        entry[5]?.fill === '#c7c7c7'
+    );
+    expect(hasLightContentPanel).toBe(true);
+
+    const qtdCall = primitiveMocks.drawText.mock.calls.find((entry) => entry[1] === 'QTD 1');
+    expect(qtdCall).toBeTruthy();
   });
 
   it('renders MON image + LV without drawing the old detail frame box', () => {
@@ -116,5 +151,26 @@ describe('ui2 layout refresh', () => {
 
     const hasLegacyFrame = primitiveMocks.drawBox.mock.calls.some((entry) => entry[3] === 68 && entry[4] === 44);
     expect(hasLegacyFrame).toBe(false);
+  });
+
+  it('renders dash placeholders when BAG and MON slots are empty', () => {
+    const bagState = createEmptyState(MENU_TABS.BAG);
+    const bagCtx = createContext();
+
+    renderUI2Overlay(bagCtx, bagState, null);
+    const bagDashCount = primitiveMocks.drawText.mock.calls.filter((entry) => entry[1] === '-').length;
+    const qtdDashCall = primitiveMocks.drawText.mock.calls.find((entry) => entry[1] === 'QTD -');
+
+    expect(bagDashCount).toBeGreaterThanOrEqual(4);
+    expect(qtdDashCall).toBeTruthy();
+
+    primitiveMocks.drawText.mockClear();
+
+    const monState = createEmptyState(MENU_TABS.MON);
+    const monCtx = createContext();
+    renderUI2Overlay(monCtx, monState, null);
+
+    const monDashCount = primitiveMocks.drawText.mock.calls.filter((entry) => entry[1] === '-').length;
+    expect(monDashCount).toBeGreaterThanOrEqual(4);
   });
 });

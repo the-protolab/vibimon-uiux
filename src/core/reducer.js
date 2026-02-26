@@ -4,26 +4,26 @@ import { moveCursor } from './world.js';
 
 function formatBagLabel(item) {
   if (!item) {
-    return 'EMPTY';
+    return '-';
   }
 
   if (typeof item === 'string') {
     return item;
   }
 
-  return item.name || item.id || 'ITEM';
+  return item.name || item.id || '-';
 }
 
 function formatMonLabel(mon) {
   if (!mon) {
-    return 'EMPTY';
+    return '-';
   }
 
   if (typeof mon === 'string') {
     return mon;
   }
 
-  return mon.name || mon.id || 'MON';
+  return mon.name || mon.id || '-';
 }
 
 function cycleIndex(current, length, delta) {
@@ -240,12 +240,22 @@ export function reduceGameState(state, action) {
           };
         }
       } else {
+        const nextMenu = {
+          ...state.menu,
+          activeTab: nextTab
+        };
+
+        if (nextTab === MENU_TABS.BAG) {
+          nextMenu.bagIndex = 0;
+        }
+
+        if (nextTab === MENU_TABS.MON) {
+          nextMenu.monIndex = 0;
+        }
+
         nextState = {
           ...state,
-          menu: {
-            ...state.menu,
-            activeTab: nextTab
-          },
+          menu: nextMenu,
           message: `UI2 ${nextTab}`
         };
       }

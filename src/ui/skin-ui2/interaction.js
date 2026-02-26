@@ -60,6 +60,15 @@ function directionalAction(direction, state) {
   return [{ type: DOMAIN_ACTIONS.SELECT_ITEM, direction }];
 }
 
+function isDirectionalInputAction(action) {
+  return (
+    action === INPUT_ACTIONS.UP ||
+    action === INPUT_ACTIONS.DOWN ||
+    action === INPUT_ACTIONS.LEFT ||
+    action === INPUT_ACTIONS.RIGHT
+  );
+}
+
 function inputActionToDomain(inputAction, state) {
   switch (inputAction) {
     case INPUT_ACTIONS.UP:
@@ -77,6 +86,13 @@ function inputActionToDomain(inputAction, state) {
     case INPUT_ACTIONS.TAB_MON:
       return [{ type: DOMAIN_ACTIONS.OPEN_TAB, tab: MENU_TABS.MON }];
     case INPUT_ACTIONS.A:
+      if (state.menu.activeTab !== MENU_TABS.MAP) {
+        return [
+          { type: DOMAIN_ACTIONS.OPEN_TAB, tab: MENU_TABS.MAP },
+          { type: DOMAIN_ACTIONS.CONFIRM }
+        ];
+      }
+
       return [{ type: DOMAIN_ACTIONS.CONFIRM }];
     case INPUT_ACTIONS.B:
       return [];
@@ -100,8 +116,12 @@ function menuInput(rawInput, state) {
     return [INPUT_ACTIONS.TAB_MON];
   }
 
-  if (state.menu.activeTab !== MENU_TABS.MAP && y >= 4 && y < 64) {
-    return [x < 80 ? INPUT_ACTIONS.LEFT : INPUT_ACTIONS.RIGHT];
+  if (state.menu.activeTab !== MENU_TABS.MAP && pointInRect(x, y, UI2_HITBOXES.listNavUp)) {
+    return [INPUT_ACTIONS.UP];
+  }
+
+  if (state.menu.activeTab !== MENU_TABS.MAP && pointInRect(x, y, UI2_HITBOXES.listNavDown)) {
+    return [INPUT_ACTIONS.DOWN];
   }
 
   return [];
@@ -113,11 +133,25 @@ export function createUI2Skin() {
     mapInput(rawInput, state) {
       if (rawInput.kind === 'keyboard') {
         const action = keyToInputAction(rawInput.code);
+        if (
+          action &&
+          isDirectionalInputAction(action) &&
+          state.menu.activeTab !== MENU_TABS.MAP
+        ) {
+          return [];
+        }
         return action ? [action] : [];
       }
 
       if (rawInput.kind === 'control') {
         const action = controlToInputAction(rawInput.input);
+        if (
+          action &&
+          isDirectionalInputAction(action) &&
+          state.menu.activeTab !== MENU_TABS.MAP
+        ) {
+          return [];
+        }
         return action ? [action] : [];
       }
 
