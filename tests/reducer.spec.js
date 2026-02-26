@@ -35,6 +35,48 @@ describe('reducer flows', () => {
     expect(next.menu.ui1Focus).toBe(MENU_TABS.MON);
   });
 
+  it('ui1 keeps aligned column when moving from BAG to MON', () => {
+    const base = createInitialState('ui1');
+    const initial = {
+      ...base,
+      menu: {
+        ...base.menu,
+        ui1Focus: MENU_TABS.BAG,
+        bagIndex: 2,
+        monIndex: 0
+      }
+    };
+
+    const next = reduceGameState(initial, {
+      type: DOMAIN_ACTIONS.SELECT_ITEM,
+      direction: 'down'
+    });
+
+    expect(next.menu.ui1Focus).toBe(MENU_TABS.MON);
+    expect(next.menu.monIndex).toBe(2);
+  });
+
+  it('ui1 keeps aligned column when moving from MON to BAG', () => {
+    const base = createInitialState('ui1');
+    const initial = {
+      ...base,
+      menu: {
+        ...base.menu,
+        ui1Focus: MENU_TABS.MON,
+        monIndex: 3,
+        bagIndex: 0
+      }
+    };
+
+    const next = reduceGameState(initial, {
+      type: DOMAIN_ACTIONS.SELECT_ITEM,
+      direction: 'up'
+    });
+
+    expect(next.menu.ui1Focus).toBe(MENU_TABS.BAG);
+    expect(next.menu.bagIndex).toBe(3);
+  });
+
   it('ui1 horizontal select updates focused list index', () => {
     const initial = createInitialState('ui1');
     const next = reduceGameState(initial, {

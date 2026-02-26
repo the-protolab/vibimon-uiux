@@ -1,5 +1,6 @@
 import { LOGICAL_HEIGHT, LOGICAL_WIDTH, MENU_WIDTH, MENU_HEIGHT } from '../../core/game-state.js';
 import { drawBox, drawMiniMap, drawText, PALETTE } from '../shared/primitives.js';
+import { MENU_TABS } from '../../core/actions.js';
 
 const ISLAND_HEIGHT = 60;
 
@@ -34,6 +35,9 @@ const MON_TAB_Y = LIST_PANEL.y + SECTION_HEIGHT + 4;
 const BAG_ROW_Y = LIST_PANEL.y + 16;
 const MON_ROW_Y = LIST_PANEL.y + SECTION_HEIGHT + 16;
 const SLOT_ROW_X = LIST_PANEL.x + 6;
+const SLOT_SIZE = 12;
+const SLOT_GAP = 4;
+const SLOT_STEP = SLOT_SIZE + SLOT_GAP;
 
 export const UI1_HITBOXES = {
   world: { x: 0, y: 0, width: LOGICAL_WIDTH, height: LOGICAL_HEIGHT },
@@ -43,12 +47,15 @@ export const UI1_HITBOXES = {
 
 function drawSlotRow(ctx, x, y, selectedIndex) {
   for (let i = 0; i < 4; i += 1) {
-    const slotX = x + i * 17;
-    ctx.fillStyle = i === selectedIndex ? PALETTE.dark : PALETTE.mid;
-    ctx.fillRect(slotX, y, 14, 10);
+    const slotX = x + i * SLOT_STEP;
+    ctx.fillStyle = PALETTE.mid;
+    ctx.fillRect(slotX, y, SLOT_SIZE, SLOT_SIZE);
 
-    ctx.fillStyle = PALETTE.white;
-    ctx.fillRect(slotX + 2, y + 2, 10, 6);
+    if (i === selectedIndex) {
+      ctx.strokeStyle = PALETTE.black;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(slotX + 0.5, y + 0.5, SLOT_SIZE - 1, SLOT_SIZE - 1);
+    }
   }
 }
 
@@ -56,9 +63,16 @@ export function renderUI1Overlay(ctx, state) {
   ctx.fillStyle = PALETTE.black;
   ctx.fillRect(0, 0, MENU_WIDTH, MENU_HEIGHT);
 
-  drawBox(ctx, ISLAND.x, ISLAND.y, ISLAND.width, ISLAND.height, { fill: '#bdbdbd', border: '#444444' });
+  const islandActive = state.menu.activeTab !== MENU_TABS.MAP;
+  const islandOutline = islandActive ? '#4d77da' : '#444444';
+
+  ctx.fillStyle = '#bdbdbd';
+  ctx.fillRect(ISLAND.x, ISLAND.y, ISLAND.width, ISLAND.height);
   drawBox(ctx, LIST_PANEL.x, LIST_PANEL.y, LIST_PANEL.width, LIST_PANEL.height, { fill: '#c7c7c7', border: '#444444' });
   drawBox(ctx, MAP_PANEL.x, MAP_PANEL.y, MAP_PANEL.width, MAP_PANEL.height, { fill: '#c7c7c7', border: '#444444' });
+  ctx.strokeStyle = islandOutline;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(ISLAND.x + 0.5, ISLAND.y + 0.5, ISLAND.width - 1, ISLAND.height - 1);
 
   const bagActive = state.menu.ui1Focus === 'BAG';
   const monActive = state.menu.ui1Focus === 'MON';
@@ -87,8 +101,8 @@ export function renderUI1Overlay(ctx, state) {
     monActive ? PALETTE.white : PALETTE.dark
   );
 
-  drawSlotRow(ctx, SLOT_ROW_X, BAG_ROW_Y, bagActive ? state.menu.bagIndex : -1);
-  drawSlotRow(ctx, SLOT_ROW_X, MON_ROW_Y, monActive ? state.menu.monIndex : -1);
+  drawSlotRow(ctx, SLOT_ROW_X, BAG_ROW_Y, islandActive && bagActive ? state.menu.bagIndex : -1);
+  drawSlotRow(ctx, SLOT_ROW_X, MON_ROW_Y, islandActive && monActive ? state.menu.monIndex : -1);
 
   drawMiniMap(
     ctx,

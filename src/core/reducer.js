@@ -11,6 +11,14 @@ function cycleIndex(current, length, delta) {
   return next < 0 ? next + length : next;
 }
 
+function alignIndex(sourceIndex, targetLength) {
+  if (targetLength <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(sourceIndex, targetLength - 1));
+}
+
 function directionDelta(direction) {
   switch (direction) {
     case 'up':
@@ -26,9 +34,20 @@ function directionDelta(direction) {
 
 function ui1Select(menu, direction) {
   if (direction === 'up' || direction === 'down') {
+    const nextFocus = menu.ui1Focus === MENU_TABS.BAG ? MENU_TABS.MON : MENU_TABS.BAG;
+
+    if (nextFocus === MENU_TABS.MON) {
+      return {
+        ...menu,
+        ui1Focus: nextFocus,
+        monIndex: alignIndex(menu.bagIndex, menu.mons.length)
+      };
+    }
+
     return {
       ...menu,
-      ui1Focus: menu.ui1Focus === MENU_TABS.BAG ? MENU_TABS.MON : MENU_TABS.BAG
+      ui1Focus: nextFocus,
+      bagIndex: alignIndex(menu.monIndex, menu.bagItems.length)
     };
   }
 
