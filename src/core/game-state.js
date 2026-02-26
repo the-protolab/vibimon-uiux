@@ -1,3 +1,4 @@
+import { createOverworldComponent, syncOverworldDerivedState } from '../overworld/component.js';
 import { MENU_TABS } from './actions.js';
 
 export const LOGICAL_WIDTH = 160;
@@ -6,8 +7,12 @@ export const LOGICAL_HEIGHT = 144;
 export const TILE_SIZE_UI = 8;
 export const TILE_SIZE_WORLD = 16;
 
-export const WORLD_COLS = LOGICAL_WIDTH / TILE_SIZE_WORLD;
-export const WORLD_ROWS = LOGICAL_HEIGHT / TILE_SIZE_WORLD;
+export const VIEWPORT_COLS = LOGICAL_WIDTH / TILE_SIZE_WORLD;
+export const VIEWPORT_ROWS = LOGICAL_HEIGHT / TILE_SIZE_WORLD;
+export const WORLD_BLOCK_COLS = 3;
+export const WORLD_BLOCK_ROWS = 3;
+export const WORLD_COLS = VIEWPORT_COLS * WORLD_BLOCK_COLS;
+export const WORLD_ROWS = VIEWPORT_ROWS * WORLD_BLOCK_ROWS;
 
 export const MENU_WIDTH = 160;
 export const MENU_HEIGHT = 80;
@@ -15,19 +20,31 @@ export const MENU_HEIGHT = 80;
 const DEFAULT_BAG_ITEMS = ['POTION', 'ANTIDOTE', 'ROPE', 'ETHER'];
 const DEFAULT_MONS = ['MON-01', 'MON-02', 'MON-03', 'MON-04'];
 
-export function createInitialState(mode) {
-  return {
+export function createInitialState(mode, options = {}) {
+  const overworldComponent = createOverworldComponent({
+    viewportCols: VIEWPORT_COLS,
+    viewportRows: VIEWPORT_ROWS,
+    ...options.overworldConfig
+  });
+  const overworld = overworldComponent.buildInitialOverworldState();
+  const worldCols = overworld.config.baseBlockCols * overworld.config.blockGridCols;
+  const worldRows = overworld.config.baseBlockRows * overworld.config.blockGridRows;
+  const mountedEntity = overworld.playerMountedEntityId ? overworld.entities[overworld.playerMountedEntityId] : null;
+  const playerStart = mountedEntity || overworld.spawnPoint;
+  const initialMessage = overworld.cutscene.active ? 'BOAT APPROACHING' : mode === 'ui1' ? 'UI1 READY' : 'UI2 READY';
+
+  const initialState = {
     mode,
     frame: 0,
     world: {
-      cols: WORLD_COLS,
-      rows: WORLD_ROWS,
-      name: 'DEMO FIELD'
+      cols: worldCols,
+      rows: worldRows,
+      name: 'OVERWORLD 3X3'
     },
     player: {
-      x: 4,
-      y: 3,
-      direction: 'down',
+      x: playerStart.x,
+      y: playerStart.y,
+      direction: 'up',
       animFrame: 0
     },
     menu: {
@@ -35,10 +52,19 @@ export function createInitialState(mode) {
       ui1Focus: MENU_TABS.BAG,
       bagIndex: 0,
       monIndex: 0,
-      mapCursor: { x: 4, y: 3 },
+      mapCursor: { x: playerStart.x, y: playerStart.y },
       bagItems: [...DEFAULT_BAG_ITEMS],
       mons: [...DEFAULT_MONS]
     },
-    message: mode === 'ui1' ? 'UI1 READY' : 'UI2 READY'
+    overworld,
+    camera: {
+      x: 0,
+      y: 0
+    },
+    interactionPrompt: null,
+    playerLocked: false,
+    message: initialMessage
   };
+
+  return syncOverworldDerivedState(initialState, { syncCursorWithPlayer: true });
 }

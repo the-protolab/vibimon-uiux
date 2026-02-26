@@ -78,6 +78,9 @@ body {
   display: grid;
   place-items: center;
   margin-top: 12px;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
 }
 
 #menu {
@@ -100,6 +103,9 @@ body {
   justify-content: space-between;
   gap: var(--controls-gap);
   align-items: center;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
 }
 
 .dpad {
@@ -191,10 +197,29 @@ body {
   display: flex;
   justify-content: center;
   padding-top: 10px;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
 }
 
 .shell-select-wrap {
   position: relative;
+}
+
+.hint {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+}
+
+.gameboy-shell.is-ui-revealed .menu-wrap,
+.gameboy-shell.is-ui-revealed .controls,
+.gameboy-shell.is-ui-revealed .shell-select-row,
+.gameboy-shell.is-ui-revealed .hint {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity 560ms ease, transform 560ms ease;
 }
 
 .shell-select-btn {

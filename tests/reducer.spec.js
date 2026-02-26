@@ -3,6 +3,26 @@ import { DOMAIN_ACTIONS, MENU_TABS } from '../src/core/actions.js';
 import { createInitialState } from '../src/core/game-state.js';
 import { reduceGameState } from '../src/core/reducer.js';
 
+function tick(state, totalTicks) {
+  let next = state;
+  for (let i = 0; i < totalTicks; i += 1) {
+    next = reduceGameState(next, { type: DOMAIN_ACTIONS.TICK });
+  }
+  return next;
+}
+
+function runUntilDocked(state, maxTicks = 120) {
+  let next = state;
+  let ticks = 0;
+
+  while (next.overworld.cutscene.active && ticks < maxTicks) {
+    next = reduceGameState(next, { type: DOMAIN_ACTIONS.TICK });
+    ticks += 1;
+  }
+
+  return { state: next, ticks };
+}
+
 describe('reducer flows', () => {
   it('ui1 toggles focus with vertical select', () => {
     const initial = createInitialState('ui1');
@@ -68,5 +88,85 @@ describe('reducer flows', () => {
     });
 
     expect(next.menu.activeTab).toBe(MENU_TABS.MON);
+  });
+
+  it('starts with cutscene lock and boat approach active', () => {
+    const initial = createInitialState('ui1');
+
+    expect(initial.playerLocked).toBe(true);
+    expect(initial.overworld.cutscene.active).toBe(true);
+    expect(initial.overworld.entities.boat.y).toBe(26);
+  });
+
+  it('moves the boat every two ticks during intro cutscene', () => {
+    const initial = createInitialState('ui1');
+    const tick1 = reduceGameState(initial, { type: DOMAIN_ACTIONS.TICK });
+    const tick2 = reduceGameState(tick1, { type: DOMAIN_ACTIONS.TICK });
+
+    expect(tick1.overworld.entities.boat.y).toBe(26);
+    expect(tick2.overworld.entities.boat.y).toBe(25);
+    expect(tick2.player.y).toBe(25);
+  });
+
+  it('docks the boat after the cutscene route and waits for A to disembark', () => {
+    const initial = createInitialState('ui1');
+    const dockResult = runUntilDocked(initial);
+    const docked = dockResult.state;
+
+    expect(docked.overworld.cutscene.active).toBe(false);
+    expect(dockResult.ticks).toBe(26);
+    expect(docked.overworld.entities.boat.y).toBe(13);
+    expect(docked.player.x).toBe(15);
+    expect(docked.player.y).toBe(13);
+    expect(docked.playerLocked).toBe(true);
+    expect(docked.interactionPrompt).toBe('A DISEMBARK');
+  });
+
+  it('keeps movement blocked while player is on the boat after docking', () => {
+    const initial = createInitialState('ui1');
+    const docked = runUntilDocked(initial).state;
+    const moved = reduceGameState(docked, {
+      type: DOMAIN_ACTIONS.MOVE,
+      direction: 'up'
+    });
+
+    expect(moved.player.x).toBe(docked.player.x);
+    expect(moved.player.y).toBe(docked.player.y);
+    expect(moved.message).toBe('ON BOAT');
+  });
+
+  it('A disembarks when mounted and boards again when adjacent', () => {
+    const initial = createInitialState('ui1');
+    const docked = runUntilDocked(initial).state;
+    const disembarked = reduceGameState(docked, { type: DOMAIN_ACTIONS.CONFIRM });
+
+    expect(disembarked.player.x).toBe(15);
+    expect(disembarked.player.y).toBe(12);
+    expect(disembarked.playerLocked).toBe(false);
+    expect(disembarked.overworld.playerMountedEntityId).toBeNull();
+    expect(disembarked.interactionPrompt).toBe('A BOARD');
+
+    const boardedAgain = reduceGameState(disembarked, { type: DOMAIN_ACTIONS.CONFIRM });
+    expect(boardedAgain.player.x).toBe(15);
+    expect(boardedAgain.player.y).toBe(13);
+    expect(boardedAgain.overworld.playerMountedEntityId).toBe('boat');
+    expect(boardedAgain.playerLocked).toBe(true);
+  });
+
+  it('returns no interaction when A is pressed far from interactables', () => {
+    const initial = createInitialState('ui1');
+    const docked = runUntilDocked(initial).state;
+    const disembarked = reduceGameState(docked, { type: DOMAIN_ACTIONS.CONFIRM });
+
+    const farState = {
+      ...disembarked,
+      player: {
+        ...disembarked.player,
+        x: 0,
+        y: 0
+      }
+    };
+    const next = reduceGameState(farState, { type: DOMAIN_ACTIONS.CONFIRM });
+    expect(next.message).toBe('NO INTERACTION');
   });
 });

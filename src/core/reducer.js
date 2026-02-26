@@ -1,5 +1,6 @@
 import { DOMAIN_ACTIONS, MENU_TABS } from './actions.js';
-import { canMoveTo, moveCursor, movePlayer } from './world.js';
+import { advanceOverworldTick, canActorMove, resolveInteraction, syncOverworldDerivedState } from '../overworld/component.js';
+import { moveCursor } from './world.js';
 
 function cycleIndex(current, length, delta) {
   if (length <= 0) {
@@ -74,26 +75,8 @@ function ui2Select(state, direction) {
 }
 
 function confirmAction(state) {
-  if (state.mode === 'ui2' && state.menu.activeTab === MENU_TABS.MAP) {
-    const cursor = state.menu.mapCursor;
-
-    if (!canMoveTo(state.world, cursor.x, cursor.y)) {
-      return {
-        ...state,
-        message: 'MAP TILE BLOCKED'
-      };
-    }
-
-    return {
-      ...state,
-      player: {
-        ...state.player,
-        x: cursor.x,
-        y: cursor.y,
-        animFrame: (state.player.animFrame + 1) % 4
-      },
-      message: `WARP ${cursor.x},${cursor.y}`
-    };
+  if (state.menu.activeTab === MENU_TABS.MAP) {
+    return resolveInteraction(state);
   }
 
   if (state.mode === 'ui1') {
@@ -130,33 +113,71 @@ function confirmAction(state) {
   };
 }
 
+function getMoveBlockedMessage(reason) {
+  switch (reason) {
+    case 'LOCKED':
+      return 'LOCKED';
+    case 'MOUNTED':
+      return 'ON BOAT';
+    default:
+      return 'BLOCKED';
+  }
+}
+
 export function reduceGameState(state, action) {
   switch (action.type) {
-    case DOMAIN_ACTIONS.TICK:
-      return {
+    case DOMAIN_ACTIONS.TICK: {
+      const next = {
         ...state,
         frame: state.frame + 1
       };
+      return advanceOverworldTick(next);
+    }
 
     case DOMAIN_ACTIONS.MOVE: {
-      const result = movePlayer(state.world, state.player, action.direction);
-      return {
-        ...state,
-        player: result.player,
-        menu: {
-          ...state.menu,
-          mapCursor: result.moved ? { x: result.player.x, y: result.player.y } : state.menu.mapCursor
-        },
-        message: result.moved ? `STEP ${result.player.x},${result.player.y}` : 'BLOCKED'
+      const movement = canActorMove(state, action.direction);
+      if (!movement.canMove) {
+        return syncOverworldDerivedState({
+          ...state,
+          player: {
+            ...state.player,
+            direction: action.direction
+          },
+          message: getMoveBlockedMessage(movement.reason)
+        });
+      }
+
+      const nextPlayer = {
+        ...state.player,
+        x: movement.nextX,
+        y: movement.nextY,
+        direction: action.direction,
+        animFrame: (state.player.animFrame + 1) % 4
       };
+
+      return syncOverworldDerivedState(
+        {
+          ...state,
+          player: nextPlayer,
+          menu: {
+            ...state.menu,
+            mapCursor: { x: nextPlayer.x, y: nextPlayer.y }
+          },
+          message: `STEP ${nextPlayer.x},${nextPlayer.y}`
+        },
+        {
+          syncCursorWithPlayer: true
+        }
+      );
     }
 
     case DOMAIN_ACTIONS.OPEN_TAB: {
       const nextTab = action.tab;
+      let nextState;
 
       if (state.mode === 'ui1') {
         if (nextTab === MENU_TABS.MAP) {
-          return {
+          nextState = {
             ...state,
             menu: {
               ...state.menu,
@@ -164,67 +185,69 @@ export function reduceGameState(state, action) {
             },
             message: 'UI1 MAP'
           };
+        } else {
+          nextState = {
+            ...state,
+            menu: {
+              ...state.menu,
+              ui1Focus: nextTab,
+              activeTab: nextTab
+            },
+            message: `UI1 ${nextTab}`
+          };
         }
-
-        return {
+      } else {
+        nextState = {
           ...state,
           menu: {
             ...state.menu,
-            ui1Focus: nextTab,
             activeTab: nextTab
           },
-          message: `UI1 ${nextTab}`
+          message: `UI2 ${nextTab}`
         };
       }
 
-      return {
-        ...state,
-        menu: {
-          ...state.menu,
-          activeTab: nextTab
-        },
-        message: `UI2 ${nextTab}`
-      };
+      return syncOverworldDerivedState(nextState);
     }
 
     case DOMAIN_ACTIONS.SELECT_ITEM:
       if (state.mode === 'ui1') {
-        return {
+        return syncOverworldDerivedState({
           ...state,
           menu: ui1Select(state.menu, action.direction),
           message: 'UI1 NAV'
-        };
+        });
       }
 
-      return {
+      return syncOverworldDerivedState({
         ...state,
         menu: ui2Select(state, action.direction),
         message: 'UI2 NAV'
-      };
+      });
 
     case DOMAIN_ACTIONS.CONFIRM:
-      return confirmAction(state);
+      return syncOverworldDerivedState(confirmAction(state));
 
     case DOMAIN_ACTIONS.BACK:
       if (state.mode === 'ui1') {
-        return {
+        return syncOverworldDerivedState({
           ...state,
           menu: {
             ...state.menu,
             ui1Focus: MENU_TABS.BAG
           },
           message: 'UI1 BACK'
-        };
+        });
       }
 
-      return {
+      return syncOverworldDerivedState({
         ...state,
         menu: {
           ...state.menu,
           activeTab: MENU_TABS.MAP
         },
         message: 'UI2 BACK'
-      };
+      });
 
     default:
       return state;

@@ -41,8 +41,8 @@ export function renderUI2Overlay(ctx, state) {
 
   if (state.menu.activeTab === 'MAP') {
     drawText(ctx, 'MAP', 8, 8, PALETTE.dark);
-    drawMiniMap(ctx, 58, 10, 96, 46, state.world, state.player, state.menu.mapCursor);
-    drawText(ctx, 'A TO WARP', 8, 46, PALETTE.dark);
+    drawMiniMap(ctx, 58, 10, 96, 46, state.world, state.player, state.menu.mapCursor, state.overworld);
+    drawText(ctx, 'A TO INTERACT', 8, 46, PALETTE.dark);
   }
 
   if (state.menu.activeTab === 'BAG') {

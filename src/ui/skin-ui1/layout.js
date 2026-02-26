@@ -98,6 +98,7 @@ export function renderUI1Overlay(ctx, state) {
     MAP_PANEL.height - MAP_INSET * 2,
     state.world,
     state.player,
-    state.menu.mapCursor
+    state.menu.mapCursor,
+    state.overworld
   );
 }

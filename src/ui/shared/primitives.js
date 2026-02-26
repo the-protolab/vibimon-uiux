@@ -99,10 +99,10 @@ export function drawTilePattern(ctx, x, y, cols, rows, tileSize = 8) {
   }
 }
 
-export function drawMiniMap(ctx, x, y, width, height, world, player, cursor) {
-  const blocked = getBlockedTiles();
-  const cellW = Math.floor(width / world.cols);
-  const cellH = Math.floor(height / world.rows);
+export function drawMiniMap(ctx, x, y, width, height, world, player, cursor, overworldState) {
+  const blocked = getBlockedTiles(overworldState);
+  const cellW = Math.max(1, Math.floor(width / world.cols));
+  const cellH = Math.max(1, Math.floor(height / world.rows));
 
   for (let row = 0; row < world.rows; row += 1) {
     for (let col = 0; col < world.cols; col += 1) {

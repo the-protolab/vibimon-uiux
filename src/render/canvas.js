@@ -1,20 +1,59 @@
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH, MENU_HEIGHT, MENU_WIDTH, TILE_SIZE_WORLD } from '../core/game-state.js';
+import {
+  LOGICAL_HEIGHT,
+  LOGICAL_WIDTH,
+  MENU_HEIGHT,
+  MENU_WIDTH,
+  TILE_SIZE_WORLD,
+  VIEWPORT_COLS,
+  VIEWPORT_ROWS
+} from '../core/game-state.js';
 import { getBlockedTiles } from '../core/world.js';
+import { getSeaTiles } from '../overworld/component.js';
 import { drawText, PALETTE } from '../ui/shared/primitives.js';
 import { getPlayerFrame } from './sprites.js';
 
+function isVisibleOnCamera(camera, tileX, tileY) {
+  return (
+    tileX >= camera.x &&
+    tileY >= camera.y &&
+    tileX < camera.x + VIEWPORT_COLS &&
+    tileY < camera.y + VIEWPORT_ROWS
+  );
+}
+
+function tileToScreen(tile, cameraAxis) {
+  return (tile - cameraAxis) * TILE_SIZE_WORLD;
+}
+
 function drawWorldLayer(ctx, state, sprites) {
-  const blockedTiles = getBlockedTiles();
+  const blockedTiles = getBlockedTiles(state.overworld);
+  const seaTiles = getSeaTiles(state.overworld);
+  const camera = state.camera || { x: 0, y: 0 };
 
   ctx.fillStyle = PALETTE.white;
   ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-  for (let row = 0; row < state.world.rows; row += 1) {
-    for (let col = 0; col < state.world.cols; col += 1) {
+  for (let row = 0; row < VIEWPORT_ROWS; row += 1) {
+    for (let col = 0; col < VIEWPORT_COLS; col += 1) {
+      const worldX = camera.x + col;
+      const worldY = camera.y + row;
+      if (worldX >= state.world.cols || worldY >= state.world.rows) {
+        continue;
+      }
+
       const x = col * TILE_SIZE_WORLD;
       const y = row * TILE_SIZE_WORLD;
-      const blocked = blockedTiles.has(`${col},${row}`);
-      const tone = blocked ? '#6a6a6a' : (col + row) % 2 === 0 ? '#dedede' : '#c9c9c9';
+      const key = `${worldX},${worldY}`;
+      const sea = seaTiles.has(key);
+      const tone = sea
+        ? (worldX + worldY) % 2 === 0
+          ? '#8ec7e8'
+          : '#74b1d5'
+        : blockedTiles.has(key)
+          ? '#6a6a6a'
+          : (worldX + worldY) % 2 === 0
+            ? '#dedede'
+            : '#c9c9c9';
 
       ctx.fillStyle = tone;
       ctx.fillRect(x, y, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
@@ -25,8 +64,22 @@ function drawWorldLayer(ctx, state, sprites) {
     }
   }
 
-  const playerX = state.player.x * TILE_SIZE_WORLD;
-  const playerY = state.player.y * TILE_SIZE_WORLD;
+  const boat = state.overworld?.entities?.boat;
+  if (boat && isVisibleOnCamera(camera, boat.x, boat.y)) {
+    const boatHeight = sprites?.boat?.naturalHeight || sprites?.boat?.height || 24;
+    const boatX = tileToScreen(boat.x, camera.x);
+    const boatY = tileToScreen(boat.y, camera.y) + (boat.spriteOffsetY || 0);
+
+    if (sprites?.boat) {
+      ctx.drawImage(sprites.boat, boatX, boatY, TILE_SIZE_WORLD, boatHeight);
+    } else {
+      ctx.fillStyle = '#4a6470';
+      ctx.fillRect(boatX, boatY + 8, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
+    }
+  }
+
+  const playerX = tileToScreen(state.player.x, camera.x);
+  const playerY = tileToScreen(state.player.y, camera.y);
   const spriteFrame = getPlayerFrame(sprites, state.player.direction, state.player.animFrame);
 
   if (spriteFrame?.image) {
@@ -45,7 +98,10 @@ function drawWorldLayer(ctx, state, sprites) {
   }
 
   drawText(ctx, state.world.name, 2, 2, PALETTE.dark);
-  drawText(ctx, `${state.player.x},${state.player.y}`, LOGICAL_WIDTH - 40, 2, PALETTE.dark);
+  drawText(ctx, `${state.player.x},${state.player.y}`, LOGICAL_WIDTH - 64, 2, PALETTE.dark);
+  if (state.interactionPrompt) {
+    drawText(ctx, state.interactionPrompt, 4, LOGICAL_HEIGHT - 16, PALETTE.dark);
+  }
 }
 
 export function renderFrame(ctx, state, skin, sprites) {

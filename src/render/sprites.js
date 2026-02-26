@@ -4,6 +4,7 @@ import {
   PLAYER_SPRITE_FILE_REGEX,
   SPRITE_DIRECTIONS
 } from '../config/player-sprite-config.js';
+import BOAT_SPRITE_SRC from '../../assets/boat.png';
 
 const SPRITE_SOURCE_ENTRIES = import.meta.glob('../../assets/players/**/*.{png,webp}', {
   eager: true,
@@ -204,9 +205,17 @@ export async function loadPlayerSprites() {
     load: loadImage
   });
 
+  let boat = null;
+  try {
+    boat = await loadImage(BOAT_SPRITE_SRC);
+  } catch {
+    boat = null;
+  }
+
   return {
     ...spriteMap,
-    playerId: activePlayerId
+    playerId: activePlayerId,
+    boat
   };
 }
 

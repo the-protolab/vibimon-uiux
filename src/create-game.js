@@ -21,7 +21,7 @@ function pickSkin(mode) {
   throw new Error(`Unsupported mode: ${mode}`);
 }
 
-export function createGame({ mode, canvas, menuCanvas, controlsRoot }) {
+export function createGame({ mode, canvas, menuCanvas, controlsRoot, overworldConfig }) {
   if (!canvas) {
     throw new Error('Canvas is required');
   }
@@ -29,16 +29,30 @@ export function createGame({ mode, canvas, menuCanvas, controlsRoot }) {
   const skin = pickSkin(mode);
   const renderer = createRenderer(canvas, menuCanvas);
   const scaleManager = createScaleManager(canvas, LOGICAL_WIDTH, LOGICAL_HEIGHT, menuCanvas, MENU_WIDTH, MENU_HEIGHT);
+  const shell = canvas.closest('.gameboy-shell');
 
-  let state = createInitialState(mode);
+  let state = createInitialState(mode, { overworldConfig });
   let sprites = null;
   let running = false;
   let rafId = 0;
   let lastTick = 0;
   const cleanups = [];
 
+  function isCutsceneActive(currentState) {
+    return Boolean(currentState.overworld?.cutscene?.active);
+  }
+
+  function applyHudVisibility(currentState) {
+    if (!(shell instanceof HTMLElement)) {
+      return;
+    }
+
+    shell.classList.toggle('is-ui-revealed', !isCutsceneActive(currentState));
+  }
+
   function applyDomainAction(action) {
     state = reduceGameState(state, action);
+    applyHudVisibility(state);
     return state;
   }
 
@@ -50,6 +64,10 @@ export function createGame({ mode, canvas, menuCanvas, controlsRoot }) {
   }
 
   function handleRawInput(rawInput) {
+    if (isCutsceneActive(state)) {
+      return;
+    }
+
     const inputActions = skin.mapInput(rawInput, state);
     for (const inputAction of inputActions) {
       dispatchInput(inputAction);
@@ -74,6 +92,8 @@ export function createGame({ mode, canvas, menuCanvas, controlsRoot }) {
     if (running) {
       return;
     }
+
+    applyHudVisibility(state);
 
     scaleManager.resize();
     const resizeHandler = () => scaleManager.resize();
