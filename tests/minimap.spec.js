@@ -38,6 +38,19 @@ function projectCellRect(x, y, width, height, world, col, row) {
   };
 }
 
+function projectMarkerRect(x, y, width, height, world, col, row) {
+  const cell = projectCellRect(x, y, width, height, world, col, row);
+  const insetX = cell.width > 2 ? 1 : 0;
+  const insetY = cell.height > 2 ? 1 : 0;
+
+  return {
+    x: cell.x + insetX,
+    y: cell.y + insetY,
+    width: Math.max(1, cell.width - insetX * 2),
+    height: Math.max(1, cell.height - insetY * 2)
+  };
+}
+
 describe('minimap geometry', () => {
   it('covers the full minimap area with projected cells and no zero-size tiles', () => {
     const ctx = createMockContext();
@@ -110,5 +123,35 @@ describe('minimap geometry', () => {
       width: Math.max(1, rect.width - insetX * 2),
       height: Math.max(1, rect.height - insetY * 2)
     });
+  });
+
+  it('renders item and monster entity markers on top of minimap tiles', () => {
+    const ctx = createMockContext();
+    const world = { cols: 30, rows: 27 };
+    const player = { x: 0, y: 0 };
+    const cursor = { x: 0, y: 0 };
+    const originX = 4;
+    const originY = 8;
+    const width = 52;
+    const height = 37;
+    const overworldState = {
+      blockedTileSet: new Set(),
+      entities: {
+        item_1: { id: 'item_1', kind: 'item', x: 10, y: 11 },
+        boat: { id: 'boat', kind: 'boat', x: 12, y: 13 },
+        monster_1: { id: 'monster_1', kind: 'monster', x: 14, y: 15 }
+      }
+    };
+
+    drawMiniMap(ctx, originX, originY, width, height, world, player, cursor, overworldState);
+
+    const tileCount = world.cols * world.rows;
+    const itemRect = ctx.fillRects[tileCount];
+    const monsterRect = ctx.fillRects[tileCount + 1];
+    const playerRect = ctx.fillRects[tileCount + 2];
+
+    expect(itemRect).toEqual(projectMarkerRect(originX, originY, width, height, world, 10, 11));
+    expect(monsterRect).toEqual(projectMarkerRect(originX, originY, width, height, world, 14, 15));
+    expect(playerRect).toEqual(projectMarkerRect(originX, originY, width, height, world, player.x, player.y));
   });
 });

@@ -3,12 +3,26 @@ import { drawBox, drawMiniMap, drawText, PALETTE } from '../shared/primitives.js
 import { MENU_TABS } from '../../core/actions.js';
 
 const TAB_WIDTH = Math.floor(MENU_WIDTH / 3);
+const CONTENT_HEIGHT = 64;
+const LIST_TEXT_X = 8;
 
 export const UI2_HITBOXES = {
   world: { x: 0, y: 0, width: LOGICAL_WIDTH, height: LOGICAL_HEIGHT },
-  tabMap: { x: 0, y: 64, width: TAB_WIDTH, height: 16 },
-  tabBag: { x: TAB_WIDTH, y: 64, width: TAB_WIDTH, height: 16 },
-  tabMon: { x: TAB_WIDTH * 2, y: 64, width: MENU_WIDTH - TAB_WIDTH * 2, height: 16 }
+  tabMap: { x: 0, y: CONTENT_HEIGHT, width: TAB_WIDTH, height: MENU_HEIGHT - CONTENT_HEIGHT },
+  tabBag: { x: TAB_WIDTH, y: CONTENT_HEIGHT, width: TAB_WIDTH, height: MENU_HEIGHT - CONTENT_HEIGHT },
+  tabMon: {
+    x: TAB_WIDTH * 2,
+    y: CONTENT_HEIGHT,
+    width: MENU_WIDTH - TAB_WIDTH * 2,
+    height: MENU_HEIGHT - CONTENT_HEIGHT
+  }
+};
+
+export const UI2_CONTENT_RECT = {
+  x: 0,
+  y: 0,
+  width: MENU_WIDTH,
+  height: CONTENT_HEIGHT
 };
 
 function drawTab(ctx, rect, label, active) {
@@ -59,21 +73,20 @@ function formatMonLevel(mon) {
 }
 
 function drawListPreview(ctx, title, items, index, format = (value) => String(value || 'EMPTY'), options = {}) {
-  const panelX = options.x ?? 8;
+  const panelX = options.x ?? LIST_TEXT_X;
   const panelY = options.y ?? 8;
   const panelWidth = options.width ?? 148;
-  const titleX = panelX;
   const titleY = panelY;
   const prevY = panelY + 14;
-  const currentY = panelY + 24;
+  const currentY = panelY + 26;
   const nextY = panelY + 38;
-  const selectedBoxY = panelY + 22;
+  const selectedBoxY = currentY - 2;
   const listLength = items.length;
 
-  drawText(ctx, title, titleX, titleY, PALETTE.dark);
+  drawText(ctx, title, panelX, titleY, PALETTE.dark);
 
   if (listLength === 0) {
-    drawText(ctx, 'EMPTY', panelX, currentY + 2, PALETTE.dark);
+    drawText(ctx, 'EMPTY', panelX, currentY, PALETTE.dark);
     return;
   }
 
@@ -83,54 +96,81 @@ function drawListPreview(ctx, title, items, index, format = (value) => String(va
 
   drawText(ctx, prev, panelX, prevY, '#666666');
   drawBox(ctx, panelX - 2, selectedBoxY, panelWidth, 10, { fill: '#7a7a7a', border: '#404040' });
-  drawText(ctx, current, panelX + 2, currentY, PALETTE.white);
+  drawText(ctx, current, panelX, currentY, PALETTE.white);
   drawText(ctx, next, panelX, nextY, '#666666');
 }
 
 function drawMonDetails(ctx, mon, sprites) {
-  drawBox(ctx, 86, 10, 68, 44, { fill: '#d2d2d2', border: '#4a4a4a' });
+  const detailX = 96;
+  const detailY = 8;
+  const level = formatMonLevel(mon);
+
+  drawText(ctx, level === null ? 'LV ?' : `LV ${level}`, detailX, detailY, PALETTE.dark);
 
   if (!mon) {
-    drawText(ctx, 'MON', 92, 20, PALETTE.dark);
-    drawText(ctx, 'EMPTY', 92, 30, PALETTE.dark);
+    drawText(ctx, 'EMPTY', detailX, detailY + 12, PALETTE.dark);
     return;
   }
 
-  drawText(ctx, formatMonLabel(mon), 90, 14, PALETTE.dark);
-  const level = formatMonLevel(mon);
-  drawText(ctx, level === null ? 'LVL ?' : `LVL ${level}`, 90, 24, PALETTE.dark);
+  const spriteSize = 34;
+  const spriteX = detailX + 16;
+  const spriteY = detailY + 16;
 
   if (sprites?.fightMonster1) {
-    ctx.drawImage(sprites.fightMonster1, 118, 30, 20, 20);
-  } else {
-    ctx.fillStyle = PALETTE.dark;
-    ctx.fillRect(122, 34, 12, 12);
+    ctx.drawImage(sprites.fightMonster1, spriteX, spriteY, spriteSize, spriteSize);
+    return;
   }
+
+  ctx.fillStyle = PALETTE.dark;
+  ctx.fillRect(spriteX + 10, spriteY + 10, 14, 14);
+}
+
+function renderMapTab(ctx, state) {
+  drawMiniMap(
+    ctx,
+    UI2_CONTENT_RECT.x,
+    UI2_CONTENT_RECT.y,
+    UI2_CONTENT_RECT.width,
+    UI2_CONTENT_RECT.height,
+    state.world,
+    state.player,
+    state.menu.mapCursor,
+    state.overworld,
+    { showBorder: false }
+  );
+}
+
+function renderBagTab(ctx, state) {
+  drawListPreview(ctx, 'BAG', state.menu.bagItems, state.menu.bagIndex, formatBagLabel, {
+    x: LIST_TEXT_X,
+    y: 8,
+    width: 148
+  });
+}
+
+function renderMonTab(ctx, state, sprites) {
+  drawListPreview(ctx, 'MON', state.menu.mons, state.menu.monIndex, formatMonLabel, {
+    x: LIST_TEXT_X,
+    y: 8,
+    width: 84
+  });
+  drawMonDetails(ctx, state.menu.mons[state.menu.monIndex], sprites);
 }
 
 export function renderUI2Overlay(ctx, state, sprites) {
   ctx.fillStyle = PALETTE.black;
   ctx.fillRect(0, 0, MENU_WIDTH, MENU_HEIGHT);
 
-  drawBox(ctx, 4, 4, 152, 56, { fill: '#c8c8c8', border: '#444444' });
-
   if (state.menu.activeTab === MENU_TABS.MAP) {
-    drawText(ctx, 'MAP', 8, 8, PALETTE.dark);
-    drawMiniMap(ctx, 58, 10, 96, 46, state.world, state.player, state.menu.mapCursor, state.overworld);
-    drawText(ctx, 'A TO INTERACT', 8, 46, PALETTE.dark);
+    renderMapTab(ctx, state);
   }
 
   if (state.menu.activeTab === MENU_TABS.BAG) {
-    drawListPreview(ctx, 'BAG', state.menu.bagItems, state.menu.bagIndex, formatBagLabel);
+    renderBagTab(ctx, state);
   }
 
   if (state.menu.activeTab === MENU_TABS.MON) {
-    drawListPreview(ctx, 'MON', state.menu.mons, state.menu.monIndex, formatMonLabel, {
-      x: 8,
-      y: 8,
-      width: 76
-    });
-    drawMonDetails(ctx, state.menu.mons[state.menu.monIndex], sprites);
+    renderMonTab(ctx, state, sprites);
   }
 
   drawTab(ctx, UI2_HITBOXES.tabMap, 'MAP', state.menu.activeTab === MENU_TABS.MAP);

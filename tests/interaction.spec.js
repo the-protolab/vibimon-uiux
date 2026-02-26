@@ -94,6 +94,52 @@ describe('skin input mapping', () => {
     expect(monInput).toEqual([INPUT_ACTIONS.TAB_MON]);
   });
 
+  it('ui2 keyboard arrows move player while MAP tab is active', () => {
+    const state = createInitialState('ui2');
+    const skin = createUI2Skin();
+
+    const input = skin.mapInput({ kind: 'keyboard', code: 'ArrowRight' }, state);
+    expect(input).toEqual([INPUT_ACTIONS.RIGHT]);
+
+    const domain = skin.mapInputToDomain(input[0], state);
+    expect(domain).toEqual([{ type: DOMAIN_ACTIONS.MOVE, direction: 'right' }]);
+  });
+
+  it('ui2 keyboard arrows navigate list while BAG tab is active', () => {
+    const initial = createInitialState('ui2');
+    const state = {
+      ...initial,
+      menu: {
+        ...initial.menu,
+        activeTab: MENU_TABS.BAG
+      }
+    };
+    const skin = createUI2Skin();
+
+    const input = skin.mapInput({ kind: 'keyboard', code: 'ArrowLeft' }, state);
+    expect(input).toEqual([INPUT_ACTIONS.LEFT]);
+
+    const domain = skin.mapInputToDomain(input[0], state);
+    expect(domain).toEqual([{ type: DOMAIN_ACTIONS.SELECT_ITEM, direction: 'left' }]);
+  });
+
+  it('ui2 ignores WASD movement keys', () => {
+    const state = createInitialState('ui2');
+    const skin = createUI2Skin();
+
+    expect(skin.mapInput({ kind: 'keyboard', code: 'KeyW' }, state)).toEqual([]);
+    expect(skin.mapInput({ kind: 'keyboard', code: 'KeyA' }, state)).toEqual([]);
+    expect(skin.mapInput({ kind: 'keyboard', code: 'KeyS' }, state)).toEqual([]);
+    expect(skin.mapInput({ kind: 'keyboard', code: 'KeyD' }, state)).toEqual([]);
+  });
+
+  it('ui2 ignores world canvas clicks for movement', () => {
+    const state = createInitialState('ui2');
+    const skin = createUI2Skin();
+
+    expect(skin.mapInput({ kind: 'canvas', x: 80, y: 72 }, state)).toEqual([]);
+  });
+
   it('ui2 maps A to CONFIRM in map mode for contextual interactions', () => {
     const state = createInitialState('ui2');
     const skin = createUI2Skin();
@@ -103,6 +149,17 @@ describe('skin input mapping', () => {
 
     const domain = skin.mapInputToDomain(input[0], state);
     expect(domain).toEqual([{ type: DOMAIN_ACTIONS.CONFIRM }]);
+  });
+
+  it('ui2 maps B to no-op because tabs drive navigation', () => {
+    const state = createInitialState('ui2');
+    const skin = createUI2Skin();
+
+    const input = skin.mapInput({ kind: 'keyboard', code: 'KeyX' }, state);
+    expect(input).toEqual([INPUT_ACTIONS.B]);
+
+    const domain = skin.mapInputToDomain(input[0], state);
+    expect(domain).toEqual([]);
   });
 
   it('ui1 maps A to CONFIRM in map mode for contextual interactions', () => {

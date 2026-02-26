@@ -1,4 +1,5 @@
 import { getBlockedTiles } from '../../core/world.js';
+import { getSeaTiles } from '../../overworld/component.js';
 
 export const PALETTE = {
   black: '#0f0f0f',
@@ -99,8 +100,11 @@ export function drawTilePattern(ctx, x, y, cols, rows, tileSize = 8) {
   }
 }
 
-export function drawMiniMap(ctx, x, y, width, height, world, player, cursor, overworldState) {
+export function drawMiniMap(ctx, x, y, width, height, world, player, cursor, overworldState, options = {}) {
   const blocked = getBlockedTiles(overworldState);
+  const seaTiles = getSeaTiles(overworldState);
+  const showBorder = options.showBorder ?? true;
+  const entities = Object.values(overworldState?.entities || {});
 
   function getCellRect(col, row) {
     const x0 = x + Math.floor((col * width) / world.cols);
@@ -119,16 +123,36 @@ export function drawMiniMap(ctx, x, y, width, height, world, player, cursor, ove
   for (let row = 0; row < world.rows; row += 1) {
     for (let col = 0; col < world.cols; col += 1) {
       const key = `${col},${row}`;
-      const fill = blocked.has(key) ? PALETTE.dark : PALETTE.light;
+      const fill = seaTiles.has(key) ? '#c7c7c7' : blocked.has(key) ? '#b5b5b5' : '#d8d8d8';
       const rect = getCellRect(col, row);
       ctx.fillStyle = fill;
       ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     }
   }
 
-  ctx.strokeStyle = PALETTE.black;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+  for (const entity of entities) {
+    if (!entity || (entity.kind !== 'item' && entity.kind !== 'monster')) {
+      continue;
+    }
+
+    const rect = getCellRect(entity.x, entity.y);
+    const insetX = rect.width > 2 ? 1 : 0;
+    const insetY = rect.height > 2 ? 1 : 0;
+
+    ctx.fillStyle = entity.kind === 'monster' ? '#222222' : '#888888';
+    ctx.fillRect(
+      rect.x + insetX,
+      rect.y + insetY,
+      Math.max(1, rect.width - insetX * 2),
+      Math.max(1, rect.height - insetY * 2)
+    );
+  }
+
+  if (showBorder) {
+    ctx.strokeStyle = PALETTE.black;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+  }
 
   if (cursor) {
     const rect = getCellRect(cursor.x, cursor.y);
