@@ -50,6 +50,17 @@ Cada rota inicia estado limpo (refresh/reset por interface).
 - Fonte unica dos links: `src/ui/shared/select-links.js`.
 - Para adicionar/remover itens do popup, edite somente `SELECT_LINKS` nesse arquivo.
 
+## Player Sprite Packs
+
+- Estrutura de assets: `assets/players/<id>/walk_<direction>_<frame>.png`.
+- Pack padrao (sprites novos): `assets/players/default`.
+- Pack antigo de backup: `assets/players/classic`.
+- Troca de personagem por URL (sem editar HTML):
+- `ui1.html?player=<id>`
+- `ui2.html?player=<id>`
+- Se o pack pedido nao existir, o sistema usa `default`.
+- Se o pack nao tiver sprites `left`, o sistema reutiliza `right` com flip horizontal automaticamente.
+
 ## Validacao
 
 ```bash

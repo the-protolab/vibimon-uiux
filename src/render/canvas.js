@@ -27,10 +27,18 @@ function drawWorldLayer(ctx, state, sprites) {
 
   const playerX = state.player.x * TILE_SIZE_WORLD;
   const playerY = state.player.y * TILE_SIZE_WORLD;
-  const sprite = getPlayerFrame(sprites, state.player.direction, state.player.animFrame);
+  const spriteFrame = getPlayerFrame(sprites, state.player.direction, state.player.animFrame);
 
-  if (sprite) {
-    ctx.drawImage(sprite, playerX, playerY, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
+  if (spriteFrame?.image) {
+    if (spriteFrame.flipX) {
+      ctx.save();
+      ctx.translate(playerX + TILE_SIZE_WORLD, playerY);
+      ctx.scale(-1, 1);
+      ctx.drawImage(spriteFrame.image, 0, 0, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
+      ctx.restore();
+    } else {
+      ctx.drawImage(spriteFrame.image, playerX, playerY, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
+    }
   } else {
     ctx.fillStyle = PALETTE.black;
     ctx.fillRect(playerX + 2, playerY + 2, TILE_SIZE_WORLD - 4, TILE_SIZE_WORLD - 4);
