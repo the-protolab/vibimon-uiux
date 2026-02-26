@@ -156,7 +156,14 @@ export function reduceGameState(state, action) {
 
       if (state.mode === 'ui1') {
         if (nextTab === MENU_TABS.MAP) {
-          return state;
+          return {
+            ...state,
+            menu: {
+              ...state.menu,
+              activeTab: MENU_TABS.MAP
+            },
+            message: 'UI1 MAP'
+          };
         }
 
         return {

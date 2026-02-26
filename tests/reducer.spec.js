@@ -26,6 +26,29 @@ describe('reducer flows', () => {
     expect(next.menu.monIndex).toBe(0);
   });
 
+  it('ui1 OPEN_TAB MAP activates map viewport and preserves ui1 focus and indexes', () => {
+    const base = createInitialState('ui1');
+    const initial = {
+      ...base,
+      menu: {
+        ...base.menu,
+        activeTab: MENU_TABS.MON,
+        ui1Focus: MENU_TABS.MON,
+        bagIndex: 2,
+        monIndex: 3
+      }
+    };
+    const next = reduceGameState(initial, {
+      type: DOMAIN_ACTIONS.OPEN_TAB,
+      tab: MENU_TABS.MAP
+    });
+
+    expect(next.menu.activeTab).toBe(MENU_TABS.MAP);
+    expect(next.menu.ui1Focus).toBe(MENU_TABS.MON);
+    expect(next.menu.bagIndex).toBe(2);
+    expect(next.menu.monIndex).toBe(3);
+  });
+
   it('ui2 map cursor moves inside MAP tab', () => {
     const initial = createInitialState('ui2');
     const next = reduceGameState(initial, {

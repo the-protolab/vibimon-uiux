@@ -6,6 +6,9 @@ const ROOT_DIR = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   base: '/vibimon-uiux/',
+  server: {
+    host: true
+  },
   build: {
     rollupOptions: {
       input: {

@@ -18,14 +18,24 @@ Cada rota inicia estado limpo (refresh/reset por interface).
 
 ## Controles
 
+### UI1
+
+- `Setas`/D-pad: por padrao controlam o player no mapa.
+- `B` (`X`/`Esc`/`Backspace` ou botao B touch): alterna o foco das setas entre `MAP` e `ILHA` (BAG/MON).
+- `A` (`Z`/`Enter` ou botao A touch): confirma acao.
+- Clique/touch no canvas do mundo e no menu nao gera navegacao.
+- `WASD` e atalhos numericos nao sao usados na UI1.
+
+### UI2
+
 - `Setas`: navega UI.
 - `WASD`: move player no grid do mundo.
-- `Z` ou `Enter`: botao A.
-- `X` ou `Esc`: botao B.
+- `A`: `Z` ou `Enter`.
+- `B`: `X` ou `Esc`.
 - Touch/click:
-- Botões na shell (D-pad + A/B).
+- Botoes na shell (D-pad + A/B).
 - Clique na area do mundo para mover por direcao.
-- UI2: tabs `MAP/BAG/MON` clicaveis na propria tela.
+- Tabs `MAP/BAG/MON` clicaveis na propria tela.
 
 ## Validacao
 
