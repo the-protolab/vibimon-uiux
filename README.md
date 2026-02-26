@@ -28,10 +28,15 @@ Cada rota inicia estado limpo (refresh/reset por interface).
 
 ### UI2
 
-- `Setas`: navega UI.
+- `Setas`/D-pad: navega UI (`hold` no D-pad repete direcao).
 - `WASD`: move player no grid do mundo.
 - `A`: `Z` ou `Enter`.
 - `B`: `X` ou `Esc`.
+- Mobile hardening (UI2):
+- Zoom por gesto/double-tap bloqueado.
+- App estatico sem scroll/overscroll.
+- Sem selecao de texto nos controles touch.
+- Controles em uma linha com cluster `A/B` diagonal (A na ponta direita).
 - Touch/click:
 - Botoes na shell (D-pad + A/B).
 - Clique na area do mundo para mover por direcao.
