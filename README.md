@@ -33,3 +33,14 @@ Cada rota inicia estado limpo (refresh/reset por interface).
 bun run test
 bun run build
 ```
+
+## Deploy (GitHub Pages)
+
+1. Em `Settings > Pages`, selecione `Source: GitHub Actions`.
+2. Faça push na `main` (ou rode manualmente o workflow `Deploy to GitHub Pages`).
+3. O workflow faz `bun run build` e publica `dist/`.
+
+Rotas publicadas:
+
+- `https://the-protolab.github.io/vibimon-uiux/ui1.html`
+- `https://the-protolab.github.io/vibimon-uiux/ui2.html`
