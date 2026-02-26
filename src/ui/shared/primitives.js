@@ -101,15 +101,28 @@ export function drawTilePattern(ctx, x, y, cols, rows, tileSize = 8) {
 
 export function drawMiniMap(ctx, x, y, width, height, world, player, cursor, overworldState) {
   const blocked = getBlockedTiles(overworldState);
-  const cellW = Math.max(1, Math.floor(width / world.cols));
-  const cellH = Math.max(1, Math.floor(height / world.rows));
+
+  function getCellRect(col, row) {
+    const x0 = x + Math.floor((col * width) / world.cols);
+    const x1 = x + Math.floor(((col + 1) * width) / world.cols);
+    const y0 = y + Math.floor((row * height) / world.rows);
+    const y1 = y + Math.floor(((row + 1) * height) / world.rows);
+
+    return {
+      x: x0,
+      y: y0,
+      width: Math.max(1, x1 - x0),
+      height: Math.max(1, y1 - y0)
+    };
+  }
 
   for (let row = 0; row < world.rows; row += 1) {
     for (let col = 0; col < world.cols; col += 1) {
       const key = `${col},${row}`;
       const fill = blocked.has(key) ? PALETTE.dark : PALETTE.light;
+      const rect = getCellRect(col, row);
       ctx.fillStyle = fill;
-      ctx.fillRect(x + col * cellW, y + row * cellH, cellW, cellH);
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     }
   }
 
@@ -118,10 +131,20 @@ export function drawMiniMap(ctx, x, y, width, height, world, player, cursor, ove
   ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
 
   if (cursor) {
+    const rect = getCellRect(cursor.x, cursor.y);
     ctx.strokeStyle = PALETTE.dark;
-    ctx.strokeRect(x + cursor.x * cellW + 0.5, y + cursor.y * cellH + 0.5, Math.max(1, cellW - 1), Math.max(1, cellH - 1));
+    ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, Math.max(1, rect.width - 1), Math.max(1, rect.height - 1));
   }
 
+  const playerRect = getCellRect(player.x, player.y);
+  const insetX = playerRect.width > 2 ? 1 : 0;
+  const insetY = playerRect.height > 2 ? 1 : 0;
+
   ctx.fillStyle = PALETTE.black;
-  ctx.fillRect(x + player.x * cellW + 1, y + player.y * cellH + 1, Math.max(1, cellW - 2), Math.max(1, cellH - 2));
+  ctx.fillRect(
+    playerRect.x + insetX,
+    playerRect.y + insetY,
+    Math.max(1, playerRect.width - insetX * 2),
+    Math.max(1, playerRect.height - insetY * 2)
+  );
 }
