@@ -62,6 +62,7 @@ export function createInitialState(mode, options = {}) {
       y: 0
     },
     interactionPrompt: null,
+    interactionIndicator: null,
     playerLocked: false,
     message: initialMessage
   };

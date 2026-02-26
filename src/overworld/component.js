@@ -391,12 +391,7 @@ function getViewport(overworld) {
   };
 }
 
-function getInteractionPrompt(state) {
-  if (state.overworld.cutscene?.active) {
-    return null;
-  }
-
-  const candidate = findInteractionCandidate(state);
+function getInteractionPrompt(candidate) {
   if (!candidate) {
     return null;
   }
@@ -405,11 +400,35 @@ function getInteractionPrompt(state) {
   return prompt || 'A INTERACT';
 }
 
+function getInteractionIndicator(state, candidate) {
+  if (!candidate) {
+    return null;
+  }
+
+  const indicatorConfig = candidate.definition?.indicators?.[candidate.action];
+  if (!indicatorConfig || !indicatorConfig.spriteId) {
+    return null;
+  }
+
+  const anchor = indicatorConfig.anchor || 'entity';
+  const anchorTile = anchor === 'player' ? state.player : candidate.entity;
+  if (!anchorTile) {
+    return null;
+  }
+
+  return {
+    spriteId: indicatorConfig.spriteId,
+    x: anchorTile.x + (indicatorConfig.offsetX ?? 0),
+    y: anchorTile.y + (indicatorConfig.offsetY ?? -1)
+  };
+}
+
 export function syncOverworldDerivedState(state, options = {}) {
   const syncCursorWithPlayer = options.syncCursorWithPlayer ?? false;
   const viewport = getViewport(state.overworld);
   const cameraAnchor = getCameraAnchor(state);
   const camera = computeCamera(state.world, cameraAnchor, viewport);
+  const interactionCandidate = state.overworld.cutscene?.active ? null : findInteractionCandidate(state);
 
   const nextMenu = syncCursorWithPlayer
     ? {
@@ -426,7 +445,8 @@ export function syncOverworldDerivedState(state, options = {}) {
     menu: nextMenu,
     camera,
     playerLocked: isPlayerLocked(state.overworld),
-    interactionPrompt: getInteractionPrompt(state)
+    interactionPrompt: getInteractionPrompt(interactionCandidate),
+    interactionIndicator: getInteractionIndicator(state, interactionCandidate)
   };
 }
 
@@ -459,6 +479,14 @@ function buildInitialOverworldStateInternal(normalizedConfig) {
         prompts: {
           board: 'A BOARD',
           disembark: 'A DISEMBARK'
+        },
+        indicators: {
+          disembark: {
+            spriteId: 'pressA16b',
+            anchor: 'entity',
+            offsetX: 0,
+            offsetY: -1
+          }
         }
       }
     },

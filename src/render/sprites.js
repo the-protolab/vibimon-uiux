@@ -5,6 +5,7 @@ import {
   SPRITE_DIRECTIONS
 } from '../config/player-sprite-config.js';
 import BOAT_SPRITE_SRC from '../../assets/boat.png';
+import PRESS_A_INDICATOR_SRC from '../../assets/press-A-16b.png';
 
 const SPRITE_SOURCE_ENTRIES = import.meta.glob('../../assets/players/**/*.{png,webp}', {
   eager: true,
@@ -212,10 +213,20 @@ export async function loadPlayerSprites() {
     boat = null;
   }
 
+  let pressA16b = null;
+  try {
+    pressA16b = await loadImage(PRESS_A_INDICATOR_SRC);
+  } catch {
+    pressA16b = null;
+  }
+
   return {
     ...spriteMap,
     playerId: activePlayerId,
-    boat
+    boat,
+    interactionIcons: {
+      pressA16b
+    }
   };
 }
 

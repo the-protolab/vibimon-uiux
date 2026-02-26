@@ -138,6 +138,7 @@ describe('reducer flows', () => {
     expect(initial.playerLocked).toBe(true);
     expect(initial.overworld.cutscene.active).toBe(true);
     expect(initial.overworld.entities.boat.y).toBe(26);
+    expect(initial.interactionIndicator).toBeNull();
   });
 
   it('moves the boat every two ticks during intro cutscene', () => {
@@ -162,6 +163,11 @@ describe('reducer flows', () => {
     expect(docked.player.y).toBe(13);
     expect(docked.playerLocked).toBe(true);
     expect(docked.interactionPrompt).toBe('A DISEMBARK');
+    expect(docked.interactionIndicator).toEqual({
+      spriteId: 'pressA16b',
+      x: 15,
+      y: 12
+    });
   });
 
   it('keeps movement blocked while player is on the boat after docking', () => {

@@ -25,6 +25,26 @@ function tileToScreen(tile, cameraAxis) {
   return (tile - cameraAxis) * TILE_SIZE_WORLD;
 }
 
+function drawInteractionIndicator(ctx, state, sprites, camera) {
+  const indicator = state.interactionIndicator;
+  if (!indicator) {
+    return;
+  }
+
+  const icon = sprites?.interactionIcons?.[indicator.spriteId];
+  if (!icon) {
+    return;
+  }
+
+  if (!isVisibleOnCamera(camera, indicator.x, indicator.y)) {
+    return;
+  }
+
+  const screenX = tileToScreen(indicator.x, camera.x);
+  const screenY = tileToScreen(indicator.y, camera.y);
+  ctx.drawImage(icon, screenX, screenY, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
+}
+
 function drawWorldLayer(ctx, state, sprites) {
   const blockedTiles = getBlockedTiles(state.overworld);
   const seaTiles = getSeaTiles(state.overworld);
@@ -77,6 +97,8 @@ function drawWorldLayer(ctx, state, sprites) {
       ctx.fillRect(boatX, boatY + 8, TILE_SIZE_WORLD, TILE_SIZE_WORLD);
     }
   }
+
+  drawInteractionIndicator(ctx, state, sprites, camera);
 
   const playerX = tileToScreen(state.player.x, camera.x);
   const playerY = tileToScreen(state.player.y, camera.y);
