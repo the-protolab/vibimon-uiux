@@ -12,6 +12,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
+        index: resolve(ROOT_DIR, 'index.html'),
         ui1: resolve(ROOT_DIR, 'ui1.html'),
         ui2: resolve(ROOT_DIR, 'ui2.html')
       }
